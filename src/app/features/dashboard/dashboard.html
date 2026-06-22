@@ -21,7 +21,7 @@
     <table>
       <thead><tr><th>Fuel</th><th>Litres</th><th>Amount</th><th>Operator</th></tr></thead>
       <tbody>
-        @for (s of recentSales; track $index) {
+        @for (s of recentSales(); track $index) {
           <tr><td>{{ s.fuel }}</td><td>{{ s.litres }}</td><td>{{ s.amount | money }}</td><td>{{ s.operator }}</td></tr>
         }
       </tbody>

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { PageHeader } from '../../shared/page-header';
 import { StatCard } from '../../shared/stat-card';
 import { BarChart } from '../../shared/bar-chart';
@@ -20,5 +20,6 @@ export class Dashboard {
   readonly user = inject(AuthService).user;
   readonly summary = this.data.summary();
   readonly revenue = this.data.weeklyRevenue();
-  readonly recentSales = this.data.fuelSales().slice(0, 4);
+  private readonly sales = this.data.fuelSales();
+  readonly recentSales = computed(() => this.sales().slice(0, 4));
 }
