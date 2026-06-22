@@ -1,0 +1,59 @@
+/* Global theme. Brand colours are injected at runtime from the white-label
+   config (see app.ts -> applyBrand); the rest are neutral design tokens. */
+
+:root {
+  --primary: #0f766e;
+  --accent: #f59e0b;
+
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --border: #e3e8ee;
+  --text: #1b232c;
+  --text-muted: #6b7785;
+
+  --sidebar-bg: #111827;
+  --sidebar-text: #cbd5e1;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; height: 100%; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Shared feature-screen utilities ─── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  td { color: var(--text); }
+  tbody tr:hover { background: color-mix(in srgb, var(--primary) 5%, transparent); }
+}
+
+.btn-primary {
+  background: var(--primary); color: #fff; border: none;
+  padding: 0.55rem 0.95rem; border-radius: 9px; font-weight: 600; cursor: pointer;
+  &:hover { filter: brightness(1.07); }
+}
+
+.badge { padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge.active { background: color-mix(in srgb, #16a34a 18%, transparent); color: #15803d; }
+
+.bar-meter { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; }
+.bar-meter > span { display: block; height: 100%; background: var(--primary); }
+.bar-meter.low > span { background: #dc2626; }

@@ -1,0 +1,39 @@
+<div class="login-wrap">
+  <form class="login-card" (submit)="submit($event)">
+    <div class="brand">
+      <div class="logo">{{ brand.appName.charAt(0) }}</div>
+      <h1>{{ brand.appName }}</h1>
+      <p>{{ brand.tagline }}</p>
+    </div>
+
+    <label>
+      <span>Username</span>
+      <input type="text" name="username" autocomplete="username"
+             [value]="username()" (input)="username.set($any($event.target).value)"
+             placeholder="e.g. sipho" />
+    </label>
+
+    <label>
+      <span>Password</span>
+      <input type="password" name="password" autocomplete="current-password"
+             [value]="password()" (input)="password.set($any($event.target).value)"
+             placeholder="••••••••" />
+    </label>
+
+    <label>
+      <span>Sign in as</span>
+      <select name="role" [value]="role()" (change)="role.set($any($event.target).value)">
+        @for (r of roles; track r) {
+          <option [value]="r">{{ roleLabels[r] }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="submit" class="btn-primary">Sign In</button>
+
+    <p class="poc-note">
+      Proof of concept — credentials aren't validated. Pick a role to preview that
+      user's access.
+    </p>
+  </form>
+</div>

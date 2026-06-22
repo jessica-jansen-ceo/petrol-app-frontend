@@ -1,0 +1,40 @@
+<div class="shell" [class.sidebar-open]="sidebarOpen()">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">{{ brand.appName.charAt(0) }}</div>
+      <span>{{ brand.appName }}</span>
+    </div>
+
+    <nav>
+      @for (item of nav(); track item.path) {
+        <a [routerLink]="['/app', item.path]" routerLinkActive="active"
+           (click)="sidebarOpen.set(false)">
+          <span class="dot"></span>{{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-foot">{{ brand.companyName }}</div>
+  </aside>
+
+  <div class="backdrop" (click)="sidebarOpen.set(false)"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Menu">☰</button>
+      <div class="spacer"></div>
+      @if (user(); as u) {
+        <div class="user">
+          <div class="meta">
+            <strong>{{ u.displayName }}</strong>
+            <small>{{ roleLabels[u.role] }}</small>
+          </div>
+          <div class="avatar">{{ u.displayName.charAt(0) }}</div>
+          <button class="logout" (click)="logout()">Logout</button>
+        </div>
+      }
+    </header>
+
+    <main class="content"><router-outlet></router-outlet></main>
+  </div>
+</div>
