@@ -4,7 +4,7 @@ import { UserRole } from '../models/roles';
 import { Shift } from './mock-data.service';
 
 /** Resources whose create/edit/delete are gated by role. */
-export type Resource = 'sales' | 'meters' | 'expenses' | 'inventory' | 'employees' | 'prices' | 'fuelTypes' | 'backup';
+export type Resource = 'sales' | 'meters' | 'expenses' | 'inventory' | 'employees' | 'prices' | 'fuelTypes' | 'backup' | 'stations';
 
 /**
  * Action-level access rules (the route guards handle screen visibility; this
@@ -23,7 +23,7 @@ export class PermissionsService {
   canCreate(resource: Resource): boolean {
     const r = this.role();
     if (r === UserRole.Admin) return true;
-    if (r === UserRole.Manager) return resource !== 'employees' && resource !== 'prices' && resource !== 'fuelTypes' && resource !== 'backup';
+    if (r === UserRole.Manager) return resource !== 'employees' && resource !== 'prices' && resource !== 'fuelTypes' && resource !== 'backup' && resource !== 'stations';
     // Operator
     return resource === 'sales' || resource === 'meters';
   }
@@ -32,7 +32,7 @@ export class PermissionsService {
   canModify(resource: Resource): boolean {
     const r = this.role();
     if (r === UserRole.Admin) return true;
-    if (r === UserRole.Manager) return resource !== 'employees' && resource !== 'prices' && resource !== 'fuelTypes' && resource !== 'backup';
+    if (r === UserRole.Manager) return resource !== 'employees' && resource !== 'prices' && resource !== 'fuelTypes' && resource !== 'backup' && resource !== 'stations';
     return false;
   }
 

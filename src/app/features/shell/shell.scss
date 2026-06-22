@@ -27,6 +27,11 @@ app-sidebar { z-index: 30; }
 
   .spacer { flex: 1; }
   .hamburger { display: none; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text); }
+  .station-switcher {
+    padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; max-width: 200px;
+  }
+  .station-switcher:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
   .theme-toggle {
     display: grid; place-items: center;
     background: var(--bg); border: 1px solid var(--border); border-radius: 8px;

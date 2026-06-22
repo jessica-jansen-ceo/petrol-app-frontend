@@ -44,7 +44,7 @@ export class Reconciliation {
   readonly rows = computed(() => {
     // Touch the source signals so this recomputes when data changes.
     this.data.fuelSales()();
-    this.data.meterReadings()();
+    this.data.meterEntries()();
     return this.data.reconciliation();
   });
   readonly flaggedCount = computed(() => this.rows().filter((r) => r.flagged).length);

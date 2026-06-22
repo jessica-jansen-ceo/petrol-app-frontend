@@ -62,7 +62,7 @@ export class FuelSales {
   private toast = inject(ToastService);
   private confirm = inject(ConfirmService);
 
-  readonly sales = this.data.fuelSales();
+  readonly sales = this.data.viewSales;
   query = signal('');
   open = signal(false);
   editing = signal<FuelSale | null>(null);
@@ -79,6 +79,7 @@ export class FuelSales {
 
   private buildFields(s?: FuelSale): FormField[] {
     return [
+      { key: 'station', label: 'Station', type: 'select', options: this.data.stationNames(), value: s ? this.data.stationName(s.stationId) : this.data.defaultStationName() },
       { key: 'date', label: 'Date', type: 'date', required: true, value: s?.date ?? new Date().toISOString().slice(0, 10) },
       { key: 'fuel', label: 'Fuel', type: 'select', options: this.data.fuelTypes()(), value: s?.fuel },
       { key: 'litres', label: 'Litres', type: 'number', required: true, min: 0, value: s?.litres ?? 0 },
@@ -99,7 +100,7 @@ export class FuelSales {
   }
 
   save(v: Record<string, string>) {
-    const input = { date: v['date'], fuel: v['fuel'], litres: Number(v['litres']) || 0, operator: v['operator'] };
+    const input = { stationId: this.data.stationIdByName(v['station']), date: v['date'], fuel: v['fuel'], litres: Number(v['litres']) || 0, operator: v['operator'] };
     const cur = this.editing();
     if (cur) {
       this.data.editSale(cur.id, input);

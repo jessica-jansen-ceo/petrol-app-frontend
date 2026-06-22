@@ -58,7 +58,7 @@ export class Expenses {
   private toast = inject(ToastService);
   private confirm = inject(ConfirmService);
 
-  readonly expenses = this.data.expenses();
+  readonly expenses = this.data.viewExpenses;
   query = signal('');
   open = signal(false);
   editing = signal<Expense | null>(null);
@@ -72,6 +72,7 @@ export class Expenses {
 
   private buildFields(e?: Expense): FormField[] {
     return [
+      { key: 'station', label: 'Station', type: 'select', options: this.data.stationNames(), value: e ? this.data.stationName(e.stationId) : this.data.defaultStationName() },
       { key: 'date', label: 'Date', type: 'date', required: true, value: e?.date ?? new Date().toISOString().slice(0, 10) },
       { key: 'category', label: 'Category', type: 'select', options: ['Maintenance', 'Utilities', 'Supplies', 'Salaries', 'Other'], value: e?.category },
       { key: 'description', label: 'Description', type: 'text', required: true, value: e?.description ?? '' },
@@ -83,7 +84,7 @@ export class Expenses {
   openEdit(e: Expense) { this.editing.set(e); this.fields = this.buildFields(e); this.open.set(true); }
 
   save(v: Record<string, string>) {
-    const rec = { date: v['date'], category: v['category'], description: v['description'], amount: Number(v['amount']) || 0 };
+    const rec = { stationId: this.data.stationIdByName(v['station']), date: v['date'], category: v['category'], description: v['description'], amount: Number(v['amount']) || 0 };
     const cur = this.editing();
     if (cur) { this.data.update<Expense>('expenses', cur.id, rec); this.toast.show('Expense updated'); }
     else { this.data.add<Expense>('expenses', rec); this.data.log('Added expense'); this.toast.show('Expense added'); }

@@ -189,7 +189,7 @@ export class Settings {
     const u = this.data.fuelUsage(fuel);
     const parts: string[] = [];
     if (u.sales) parts.push(`${u.sales} sale(s)`);
-    if (u.meters) parts.push(`${u.meters} meter reading(s)`);
+    if (u.nozzles) parts.push(`${u.nozzles} nozzle(s)`);
     if (u.tanks) parts.push(`${u.tanks} tank(s)`);
     if (u.prices) parts.push(`its price entry`);
     const detail = parts.length ? ` This will also permanently delete ${parts.join(', ')}.` : '';

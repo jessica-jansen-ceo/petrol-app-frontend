@@ -53,7 +53,7 @@ export class Employees {
   private toast = inject(ToastService);
   private confirm = inject(ConfirmService);
 
-  readonly employees = this.data.employees();
+  readonly employees = this.data.viewEmployees;
   query = signal('');
   open = signal(false);
   editing = signal<Employee | null>(null);
@@ -67,6 +67,7 @@ export class Employees {
 
   private buildFields(e?: Employee): FormField[] {
     return [
+      { key: 'station', label: 'Station', type: 'select', options: this.data.stationNames(), value: e ? this.data.stationName(e.stationId) : this.data.defaultStationName() },
       { key: 'name', label: 'Full Name', type: 'text', required: true, value: e?.name ?? '' },
       { key: 'role', label: 'Role', type: 'select', options: ['Pump Operator', 'Manager', 'Admin'], value: e?.role },
       { key: 'shift', label: 'Shift', type: 'select', options: ['Morning', 'Afternoon', 'Night', 'Day'], value: e?.shift },
@@ -78,7 +79,7 @@ export class Employees {
   openEdit(e: Employee) { this.editing.set(e); this.fields = this.buildFields(e); this.open.set(true); }
 
   save(v: Record<string, string>) {
-    const rec = { name: v['name'], role: v['role'], shift: v['shift'], phone: v['phone'] || '—' };
+    const rec = { stationId: this.data.stationIdByName(v['station']), name: v['name'], role: v['role'], shift: v['shift'], phone: v['phone'] || '—' };
     const cur = this.editing();
     if (cur) { this.data.update<Employee>('employees', cur.id, rec); this.toast.show('Employee updated'); }
     else { this.data.add<Employee>('employees', rec); this.data.log(`Added employee ${rec.name}`); this.toast.show('Employee added'); }

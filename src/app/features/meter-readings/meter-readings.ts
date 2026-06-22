@@ -1,46 +1,52 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { PageHeader } from '../../shared/page-header';
 import { ModalForm, FormField } from '../../shared/modal-form';
-import { MockDataService, MeterReading } from '../../core/services/mock-data.service';
+import { MockDataService } from '../../core/services/mock-data.service';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { ToastService } from '../../core/services/toast.service';
-import { ConfirmService } from '../../core/services/confirm.service';
 import { toCsv, download } from '../../shared/export';
 import { exportPdf } from '../../shared/pdf';
 
 @Component({
   selector: 'app-meter-readings',
   standalone: true,
-  imports: [PageHeader, ModalForm],
+  imports: [PageHeader, ModalForm, DatePipe],
   template: `
-    <app-page-header title="Meter Readings" subtitle="Opening/closing pump meters with auto-calculated dispensed volume.">
+    <app-page-header title="Meter Ledger"
+      subtitle="Append-only totalizer readings. Dispensed volume is derived from the difference between readings — entries can't be edited or deleted.">
       <button class="btn-ghost" (click)="exportCsv()">Export CSV</button>
       <button class="btn-ghost" (click)="exportPdf()">Export PDF</button>
       @if (perms.canCreate('meters')) { <button class="btn-primary" (click)="openCreate()">+ Record Reading</button> }
     </app-page-header>
 
     <div class="toolbar">
-      <input class="search" placeholder="Search pump or fuel…"
+      <input class="search" placeholder="Search dispenser, nozzle or fuel…"
              [value]="query()" (input)="query.set($any($event.target).value)" />
     </div>
 
     <div class="panel">
-      @if (filtered().length === 0) {
-        <div class="empty">No readings found.</div>
+      @if (rows().length === 0) {
+        <div class="empty">No readings recorded.</div>
       } @else {
         <table class="feature-table">
-          <thead><tr><th>Pump</th><th>Fuel</th><th>Opening</th><th>Closing</th><th>Dispensed</th>
-            @if (perms.canModify('meters')) { <th></th> }</tr></thead>
+          <thead><tr><th>Recorded</th><th>Station</th><th>Dispenser</th><th>Nozzle</th><th>Fuel</th>
+            <th>Totalizer</th><th>Dispensed</th><th>By</th></tr></thead>
           <tbody>
-            @for (r of filtered(); track r.id) {
-              <tr><td>{{ r.pump }}</td><td>{{ r.fuel }}</td><td>{{ r.opening }}</td><td>{{ r.closing }}</td>
-                <td><strong>{{ r.dispensed }}</strong></td>
-                @if (perms.canModify('meters')) {
-                  <td><div class="row-actions">
-                    <button class="icon-btn" title="Edit" (click)="openEdit(r)">✎</button>
-                    <button class="icon-btn danger" title="Delete" (click)="del(r)">🗑</button>
-                  </div></td>
-                }
+            @for (r of rows(); track r.entry.id) {
+              <tr [style.background]="r.anomaly ? 'color-mix(in srgb,#dc2626 8%,transparent)' : ''">
+                <td>{{ r.entry.recordedAt | date: 'short' }}</td>
+                <td>{{ stationName(r.entry.stationId) }}</td>
+                <td>{{ r.nozzle?.dispenser }}</td>
+                <td>{{ r.nozzle?.label }}</td>
+                <td>{{ r.nozzle?.fuel }}</td>
+                <td>{{ r.entry.totalizer }}</td>
+                <td>
+                  @if (r.delta === null) { <span style="color:var(--text-muted)">— first</span> }
+                  @else { <strong [style.color]="r.anomaly ? '#dc2626' : 'var(--text)'">{{ r.delta }}</strong> }
+                  @if (r.anomaly) { <span class="badge warn" style="margin-left:.4rem">anomaly</span> }
+                </td>
+                <td>{{ r.entry.recordedBy }}</td>
               </tr>
             }
           </tbody>
@@ -48,7 +54,7 @@ import { exportPdf } from '../../shared/pdf';
       }
     </div>
 
-    <app-modal-form [title]="editing() ? 'Edit Reading' : 'Record Meter Reading'" [open]="open()" [fields]="fields"
+    <app-modal-form title="Record Meter Reading" submitLabel="Record" [open]="open()" [fields]="fields"
       [validate]="validate" (cancel)="open.set(false)" (save)="save($event)"></app-modal-form>
   `,
 })
@@ -56,64 +62,73 @@ export class MeterReadings {
   private data = inject(MockDataService);
   readonly perms = inject(PermissionsService);
   private toast = inject(ToastService);
-  private confirm = inject(ConfirmService);
 
-  readonly readings = this.data.meterReadings();
   query = signal('');
   open = signal(false);
-  editing = signal<MeterReading | null>(null);
   fields: FormField[] = [];
+  private nozzleByLabel = new Map<string, string>();
 
-  readonly filtered = computed(() => {
+  readonly rows = computed(() => {
     const q = this.query().toLowerCase().trim();
-    const rows = this.readings();
-    return q ? rows.filter((r) => (r.pump + ' ' + r.fuel).toLowerCase().includes(q)) : rows;
+    const all = this.data.ledgerView();
+    if (!q) return all;
+    return all.filter((r) => `${r.nozzle?.dispenser} ${r.nozzle?.label} ${r.nozzle?.fuel}`.toLowerCase().includes(q));
   });
 
-  validate = (m: Record<string, string>) =>
-    Number(m['closing']) < Number(m['opening']) ? 'Closing must be greater than or equal to opening.' : null;
+  stationName = (id: string) => this.data.stationName(id);
 
-  private buildFields(r?: MeterReading): FormField[] {
-    return [
-      { key: 'pump', label: 'Pump', type: 'select', options: ['Pump 1', 'Pump 2', 'Pump 3', 'Pump 4'], value: r?.pump },
-      { key: 'fuel', label: 'Fuel', type: 'select', options: this.data.fuelTypes()(), value: r?.fuel },
-      { key: 'opening', label: 'Opening', type: 'number', required: true, min: 0, value: r?.opening ?? 0 },
-      { key: 'closing', label: 'Closing', type: 'number', required: true, min: 0, value: r?.closing ?? 0 },
+  validate = (m: Record<string, string>) => {
+    if (!this.nozzleByLabel.has(m['nozzle'])) return 'Pick a nozzle.';
+    if (Number(m['totalizer']) < 0) return 'Totalizer cannot be negative.';
+    return null;
+  };
+
+  openCreate() {
+    this.nozzleByLabel.clear();
+    const opts: string[] = [];
+    for (const n of this.data.viewNozzles()) {
+      const label = `${this.data.stationName(n.stationId)} · ${n.dispenser} · ${n.label} · ${n.fuel}`;
+      this.nozzleByLabel.set(label, n.id);
+      opts.push(label);
+    }
+    this.fields = [
+      { key: 'nozzle', label: 'Nozzle', type: 'select', options: opts.length ? opts : ['— no nozzles —'] },
+      { key: 'totalizer', label: 'Totalizer reading', type: 'number', required: true, min: 0, value: 0 },
+      { key: 'note', label: 'Note (optional)', type: 'text', value: '' },
     ];
+    this.open.set(true);
   }
 
-  openCreate() { this.editing.set(null); this.fields = this.buildFields(); this.open.set(true); }
-  openEdit(r: MeterReading) { this.editing.set(r); this.fields = this.buildFields(r); this.open.set(true); }
-
   save(v: Record<string, string>) {
-    const opening = Number(v['opening']) || 0;
-    const closing = Number(v['closing']) || 0;
-    const rec = { pump: v['pump'], fuel: v['fuel'], opening, closing, dispensed: Math.max(0, closing - opening) };
-    const cur = this.editing();
-    if (cur) { this.data.update<MeterReading>('meterReadings', cur.id, rec); this.toast.show('Reading updated'); }
-    else { this.data.add<MeterReading>('meterReadings', rec); this.data.log('Recorded meter reading'); this.toast.show('Reading recorded'); }
+    const nozzleId = this.nozzleByLabel.get(v['nozzle']);
+    if (!nozzleId) { this.toast.show('Pick a valid nozzle', 'error'); return; }
+    this.data.addMeterEntry({ nozzleId, totalizer: Number(v['totalizer']) || 0, note: v['note'] || undefined });
+    this.toast.show('Reading recorded');
     this.open.set(false);
   }
 
-  async del(r: MeterReading) {
-    if (await this.confirm.ask(`Delete the ${r.pump} reading?`)) {
-      this.data.remove('meterReadings', r.id);
-      this.toast.show('Reading deleted', 'info');
-    }
+  private exportRows() {
+    return this.rows().map((r) => ({
+      recordedAt: r.entry.recordedAt.slice(0, 16).replace('T', ' '),
+      station: this.data.stationName(r.entry.stationId),
+      dispenser: r.nozzle?.dispenser, nozzle: r.nozzle?.label, fuel: r.nozzle?.fuel,
+      totalizer: r.entry.totalizer, dispensed: r.delta ?? '', recordedBy: r.entry.recordedBy,
+    }));
   }
 
   exportCsv() {
-    download('meter-readings.csv', toCsv(this.filtered(), ['pump', 'fuel', 'opening', 'closing', 'dispensed']));
+    download('meter-ledger.csv', toCsv(this.exportRows(), ['recordedAt', 'station', 'dispenser', 'nozzle', 'fuel', 'totalizer', 'dispensed', 'recordedBy']));
   }
 
   exportPdf() {
     exportPdf({
-      title: 'Meter Readings',
+      title: 'Meter Ledger',
       columns: [
-        { key: 'pump', label: 'Pump' }, { key: 'fuel', label: 'Fuel' }, { key: 'opening', label: 'Opening' },
-        { key: 'closing', label: 'Closing' }, { key: 'dispensed', label: 'Dispensed' },
+        { key: 'recordedAt', label: 'Recorded' }, { key: 'station', label: 'Station' },
+        { key: 'dispenser', label: 'Dispenser' }, { key: 'nozzle', label: 'Nozzle' }, { key: 'fuel', label: 'Fuel' },
+        { key: 'totalizer', label: 'Totalizer' }, { key: 'dispensed', label: 'Dispensed' }, { key: 'recordedBy', label: 'By' },
       ],
-      rows: this.filtered(),
+      rows: this.exportRows(),
     });
   }
 }

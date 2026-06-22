@@ -40,7 +40,7 @@ export class Reports {
   readonly revenue = computed(() => { this.data.fuelSales()(); this.data.fuelColors()(); return this.data.weeklyRevenueStacked(); });
 
   readonly periods = computed(() => {
-    const sales = this.data.fuelSales()();
+    const sales = this.data.viewSales();
     const today = new Date().toISOString().slice(0, 10);
     const weekAgo = new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10);
     const monthAgo = new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);

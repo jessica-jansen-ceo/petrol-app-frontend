@@ -6,6 +6,11 @@
   <div class="main">
     <header class="topbar">
       <button class="hamburger" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Menu">☰</button>
+      <select class="station-switcher" [value]="settings.currentStation()" (change)="setStation($any($event.target).value)"
+              title="Station">
+        <option [value]="allStations">All Stations</option>
+        @for (s of stations(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+      </select>
       <div class="spacer"></div>
       <button class="theme-toggle" (click)="settings.toggleTheme()"
               [attr.aria-label]="settings.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"

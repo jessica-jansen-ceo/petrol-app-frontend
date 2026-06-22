@@ -40,14 +40,16 @@ export const REPORT_SOURCES: Record<ReportSource, { label: string; dated: boolea
     ],
   },
   meters: {
-    label: 'Meter Readings',
+    label: 'Meter Ledger',
     dated: false,
     columns: [
-      { key: 'pump', label: 'Pump' },
+      { key: 'dispenser', label: 'Dispenser' },
+      { key: 'nozzle', label: 'Nozzle' },
       { key: 'fuel', label: 'Fuel' },
-      { key: 'opening', label: 'Opening' },
-      { key: 'closing', label: 'Closing' },
+      { key: 'totalizer', label: 'Totalizer' },
       { key: 'dispensed', label: 'Dispensed' },
+      { key: 'recordedAt', label: 'Recorded At' },
+      { key: 'recordedBy', label: 'By' },
     ],
   },
   inventory: {

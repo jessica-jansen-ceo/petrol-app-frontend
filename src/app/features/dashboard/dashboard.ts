@@ -20,7 +20,7 @@ export class Dashboard {
   readonly unit = CLIENT_CONFIG.locale.volumeUnit;
   readonly user = inject(AuthService).user;
 
-  private readonly sales = this.data.fuelSales();
+  private readonly sales = this.data.viewSales;
   readonly summary = computed(() => { this.sales(); this.data.shifts()(); this.data.stock()(); return this.data.summary(); });
   readonly revenue = computed(() => { this.sales(); this.data.fuelColors()(); return this.data.weeklyRevenueStacked(); });
   readonly fuelMix = computed(() => { this.sales(); return this.data.fuelMix(); });

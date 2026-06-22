@@ -21,7 +21,7 @@ const O = UserRole.Operator;
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: 'dashboard', icon: 'grid', roles: [A, M, O] },
   { label: 'Fuel Sales', path: 'fuel-sales', icon: 'fuel', roles: [A, M, O] },
-  { label: 'Meter Readings', path: 'meter-readings', icon: 'gauge', roles: [A, M, O] },
+  { label: 'Meter Ledger', path: 'meter-readings', icon: 'gauge', roles: [A, M, O] },
   { label: 'Shifts', path: 'shifts', icon: 'clock', roles: [A, M, O], feature: 'shifts' },
   { label: 'Sales Summary', path: 'reports', icon: 'chart', roles: [A, M], feature: 'reports' },
   { label: 'Reconciliation', path: 'reconciliation', icon: 'scale', roles: [A, M] },
@@ -30,5 +30,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Inventory', path: 'inventory', icon: 'tank', roles: [A, M], feature: 'inventory' },
   { label: 'Employees', path: 'employees', icon: 'users', roles: [A], feature: 'employees' },
   { label: 'Activity Log', path: 'activity', icon: 'list', roles: [A, M] },
+  { label: 'Stations', path: 'stations', icon: 'building', roles: [A] },
   { label: 'Settings', path: 'settings', icon: 'cog', roles: [A] },
 ];

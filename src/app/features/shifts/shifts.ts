@@ -55,7 +55,7 @@ export class Shifts {
   private toast = inject(ToastService);
   private confirm = inject(ConfirmService);
 
-  readonly shifts = this.data.shifts();
+  readonly shifts = this.data.viewShifts;
   open = signal(false);
   editing = signal<Shift | null>(null);
   fields: FormField[] = [];
@@ -71,6 +71,7 @@ export class Shifts {
 
   private buildFields(s?: Shift): FormField[] {
     return [
+      { key: 'station', label: 'Station', type: 'select', options: this.data.stationNames(), value: s ? this.data.stationName(s.stationId) : this.data.defaultStationName() },
       this.operatorField(s?.operator),
       { key: 'pump', label: 'Pump', type: 'select', options: ['Pump 1', 'Pump 2', 'Pump 3', 'Pump 4', 'Office'], value: s?.pump },
       { key: 'scheduledStart', label: 'Scheduled Start', type: 'time', value: s?.scheduledStart ?? '06:00' },
@@ -84,7 +85,7 @@ export class Shifts {
   save(v: Record<string, string>) {
     // Enforce ownership: operators cannot open a shift for someone else.
     const operator = this.perms.isSupervisor() ? v['operator'] : (this.auth.user()?.displayName ?? v['operator']);
-    const rec = { operator, pump: v['pump'], scheduledStart: v['scheduledStart'], scheduledEnd: v['scheduledEnd'] };
+    const rec = { stationId: this.data.stationIdByName(v['station']), operator, pump: v['pump'], scheduledStart: v['scheduledStart'], scheduledEnd: v['scheduledEnd'] };
     const cur = this.editing();
     if (cur) {
       this.data.update<Shift>('shifts', cur.id, rec);

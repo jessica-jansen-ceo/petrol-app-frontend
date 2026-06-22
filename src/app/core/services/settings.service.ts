@@ -17,6 +17,8 @@ export type Theme = 'light' | 'dark';
 export class SettingsService {
   readonly currency = signal<string>(this.restore('currency', CLIENT_CONFIG.locale.currency));
   readonly theme = signal<Theme>(this.restore('theme', 'light') as Theme);
+  /** Current station scope. 'all' shows every station aggregated. */
+  readonly currentStation = signal<string>(this.restore('currentStation', 'all'));
   /** Tanks below this fraction of capacity are flagged low. */
   readonly lowStockPct = signal<number>(Number(this.restore('lowStockPct', '0.25')));
   /** Sales-vs-meter variance beyond this % is flagged. */
@@ -39,6 +41,11 @@ export class SettingsService {
 
   toggleTheme(): void {
     this.setTheme(this.theme() === 'dark' ? 'light' : 'dark');
+  }
+
+  setCurrentStation(id: string): void {
+    this.currentStation.set(id);
+    this.save('currentStation', id);
   }
 
   setLowStockPct(pct: number): void {
