@@ -6,6 +6,7 @@ import { PermissionsService } from '../../core/services/permissions.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { toCsv, download } from '../../shared/export';
+import { exportPdf } from '../../shared/pdf';
 
 @Component({
   selector: 'app-meter-readings',
@@ -14,6 +15,7 @@ import { toCsv, download } from '../../shared/export';
   template: `
     <app-page-header title="Meter Readings" subtitle="Opening/closing pump meters with auto-calculated dispensed volume.">
       <button class="btn-ghost" (click)="exportCsv()">Export CSV</button>
+      <button class="btn-ghost" (click)="exportPdf()">Export PDF</button>
       @if (perms.canCreate('meters')) { <button class="btn-primary" (click)="openCreate()">+ Record Reading</button> }
     </app-page-header>
 
@@ -102,5 +104,16 @@ export class MeterReadings {
 
   exportCsv() {
     download('meter-readings.csv', toCsv(this.filtered(), ['pump', 'fuel', 'opening', 'closing', 'dispensed']));
+  }
+
+  exportPdf() {
+    exportPdf({
+      title: 'Meter Readings',
+      columns: [
+        { key: 'pump', label: 'Pump' }, { key: 'fuel', label: 'Fuel' }, { key: 'opening', label: 'Opening' },
+        { key: 'closing', label: 'Closing' }, { key: 'dispensed', label: 'Dispensed' },
+      ],
+      rows: this.filtered(),
+    });
   }
 }

@@ -1,23 +1,25 @@
 import { Component, computed, inject } from '@angular/core';
 import { PageHeader } from '../../shared/page-header';
-import { BarChart } from '../../shared/bar-chart';
+import { StackedBarChart } from '../../shared/stacked-bar-chart';
 import { MoneyPipe } from '../../shared/money.pipe';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { toCsv, download } from '../../shared/export';
+import { exportPdf } from '../../shared/pdf';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [PageHeader, BarChart, MoneyPipe],
+  imports: [PageHeader, StackedBarChart, MoneyPipe],
   template: `
-    <app-page-header title="Reports" subtitle="Daily / weekly / monthly sales, aggregated from recorded data.">
+    <app-page-header title="Sales Summary" subtitle="Daily / weekly / monthly sales, aggregated from recorded data.">
       <button class="btn-ghost" (click)="exportCsv()">Export CSV</button>
+      <button class="btn-ghost" (click)="exportPdf()">Export PDF</button>
       <button class="btn-primary" (click)="print()">Print / Save PDF</button>
     </app-page-header>
 
     <div class="panel" style="margin-bottom:1rem">
       <h2 style="margin:0 0 1rem;font-size:1rem">Revenue — last 7 days</h2>
-      <app-bar-chart [data]="revenue()"></app-bar-chart>
+      <app-stacked-bar-chart [data]="revenue()"></app-stacked-bar-chart>
     </div>
 
     <div class="panel">
@@ -35,7 +37,7 @@ import { toCsv, download } from '../../shared/export';
 })
 export class Reports {
   private data = inject(MockDataService);
-  readonly revenue = computed(() => { this.data.fuelSales()(); return this.data.weeklyRevenue(); });
+  readonly revenue = computed(() => { this.data.fuelSales()(); this.data.fuelColors()(); return this.data.weeklyRevenueStacked(); });
 
   readonly periods = computed(() => {
     const sales = this.data.fuelSales()();
@@ -56,6 +58,14 @@ export class Reports {
 
   exportCsv() {
     download('sales-report.csv', toCsv(this.periods(), ['period', 'litres', 'revenue']));
+  }
+
+  exportPdf() {
+    exportPdf({
+      title: 'Sales Summary',
+      columns: [{ key: 'period', label: 'Period' }, { key: 'litres', label: 'Litres' }, { key: 'revenue', label: 'Revenue' }],
+      rows: this.periods(),
+    });
   }
 
   print() {

@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { toCsv, download } from '../../shared/export';
+import { exportPdf } from '../../shared/pdf';
 
 @Component({
   selector: 'app-fuel-sales',
@@ -16,6 +17,7 @@ import { toCsv, download } from '../../shared/export';
   template: `
     <app-page-header title="Fuel Sales" subtitle="Daily fuel sales entries. Price is applied automatically from the price book.">
       <button class="btn-ghost" (click)="exportCsv()">Export CSV</button>
+      <button class="btn-ghost" (click)="exportPdf()">Export PDF</button>
       @if (perms.canCreate('sales')) { <button class="btn-primary" (click)="openCreate()">+ New Sale</button> }
     </app-page-header>
 
@@ -119,5 +121,16 @@ export class FuelSales {
   exportCsv() {
     const cols = ['date', 'fuel', 'litres', 'pricePerLitre', 'amount', 'operator'];
     download('fuel-sales.csv', toCsv(this.filtered(), cols));
+  }
+
+  exportPdf() {
+    exportPdf({
+      title: 'Fuel Sales',
+      columns: [
+        { key: 'date', label: 'Date' }, { key: 'fuel', label: 'Fuel' }, { key: 'litres', label: 'Litres' },
+        { key: 'pricePerLitre', label: 'Price/L' }, { key: 'amount', label: 'Amount' }, { key: 'operator', label: 'Operator' },
+      ],
+      rows: this.filtered(),
+    });
   }
 }

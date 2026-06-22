@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { PageHeader } from '../../shared/page-header';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { toCsv, download } from '../../shared/export';
+import { exportPdf } from '../../shared/pdf';
 
 @Component({
   selector: 'app-reconciliation',
@@ -11,6 +12,7 @@ import { toCsv, download } from '../../shared/export';
     <app-page-header title="Sales vs Meter Reconciliation"
       subtitle="Auto-compares litres sold against litres dispensed per fuel. Variance beyond tolerance is flagged.">
       <button class="btn-ghost" (click)="exportCsv()">Export CSV</button>
+      <button class="btn-ghost" (click)="exportPdf()">Export PDF</button>
     </app-page-header>
 
     <div class="panel">
@@ -49,5 +51,17 @@ export class Reconciliation {
 
   exportCsv() {
     download('reconciliation.csv', toCsv(this.rows(), ['fuel', 'soldLitres', 'dispensedLitres', 'variance', 'variancePct', 'flagged']));
+  }
+
+  exportPdf() {
+    exportPdf({
+      title: 'Sales vs Meter Reconciliation',
+      columns: [
+        { key: 'fuel', label: 'Fuel' }, { key: 'soldLitres', label: 'Sold (L)' },
+        { key: 'dispensedLitres', label: 'Dispensed (L)' }, { key: 'variance', label: 'Variance (L)' },
+        { key: 'variancePct', label: 'Variance %' }, { key: 'flagged', label: 'Flagged' },
+      ],
+      rows: this.rows(),
+    });
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, Signal, WritableSignal, inject, signal } from '@angular/cor
 import { CLIENT_CONFIG } from '../../config/client.config';
 import { AuthService } from './auth.service';
 import { SettingsService } from './settings.service';
+import { ReportColumn, ReportSource, ReportTemplate, REPORT_SOURCES, RANGE_LABELS } from '../models/report';
 
 /** Every persisted record carries a stable id. */
 export interface Entity { id: string; }
@@ -61,7 +62,7 @@ export interface Activity extends Entity {
 
 export type CollectionName =
   | 'fuelSales' | 'meterReadings' | 'expenses' | 'stock'
-  | 'employees' | 'shifts' | 'prices' | 'activity';
+  | 'employees' | 'shifts' | 'prices' | 'activity' | 'reportTemplates';
 
 const KEY = (name: string) => `${CLIENT_CONFIG.clientId}.data.${name}`;
 const FUEL_KEY = KEY('fuelTypes');
@@ -98,6 +99,7 @@ export class MockDataService {
   private readonly _shifts = this.persisted<Shift>('shifts', SEED_SHIFTS);
   private readonly _prices = this.persisted<Price>('prices', SEED_PRICES);
   private readonly _activity = this.persisted<Activity>('activity', []);
+  private readonly _reportTemplates = this.persisted<ReportTemplate>('reportTemplates', SEED_REPORTS);
   private readonly _fuelTypes = signal<string[]>(this.loadFuelTypes());
   private readonly _fuelColors = signal<Record<string, string>>(this.loadFuelColors());
 
@@ -115,6 +117,7 @@ export class MockDataService {
   shifts(): Signal<Shift[]> { return this._shifts; }
   prices(): Signal<Price[]> { return this._prices; }
   activity(): Signal<Activity[]> { return this._activity; }
+  reportTemplates(): Signal<ReportTemplate[]> { return this._reportTemplates; }
   fuelTypes(): Signal<string[]> { return this._fuelTypes; }
   fuelColors(): Signal<Record<string, string>> { return this._fuelColors; }
 
@@ -323,6 +326,52 @@ export class MockDataService {
     return out;
   }
 
+  /** Revenue for the last 7 days, split into coloured per-fuel segments. */
+  weeklyRevenueStacked(): { label: string; segments: { key: string; value: number; color: string }[] }[] {
+    const sales = this._fuelSales();
+    const fuels = this._fuelTypes();
+    const out: { label: string; segments: { key: string; value: number; color: string }[] }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString(undefined, { weekday: 'short' });
+      const segments = fuels.map((fuel) => ({
+        key: fuel,
+        value: sales.filter((s) => s.date === iso && s.fuel === fuel).reduce((a, s) => a + s.amount, 0),
+        color: this.colorFor(fuel),
+      })).filter((s) => s.value > 0);
+      out.push({ label, segments });
+    }
+    return out;
+  }
+
+  // ─── Report Builder ───
+  /** Run a saved/draft template against current data. */
+  runReport(t: ReportTemplate): { title: string; period: string; columns: ReportColumn[]; rows: Record<string, unknown>[] } {
+    const meta = REPORT_SOURCES[t.source];
+    let rows: Record<string, unknown>[] = this.sourceRows(t.source);
+    let period = 'All time';
+    if (meta.dated && t.range !== 'all') {
+      const cutoff = rangeCutoff(t.range);
+      rows = rows.filter((r) => String(r['date']) >= cutoff);
+      period = RANGE_LABELS[t.range];
+    }
+    const columns = meta.columns.filter((c) => t.columns.includes(c.key));
+    const projected = rows.map((r) => Object.fromEntries(columns.map((c) => [c.key, r[c.key]])));
+    return { title: t.name, period, columns, rows: projected };
+  }
+
+  private sourceRows(source: ReportSource): Record<string, unknown>[] {
+    switch (source) {
+      case 'sales': return this._fuelSales() as unknown as Record<string, unknown>[];
+      case 'expenses': return this._expenses() as unknown as Record<string, unknown>[];
+      case 'meters': return this._meterReadings() as unknown as Record<string, unknown>[];
+      case 'inventory': return this._stock() as unknown as Record<string, unknown>[];
+      case 'reconciliation': return this.reconciliation() as unknown as Record<string, unknown>[];
+    }
+  }
+
   /** Litres sold per fuel (for the dashboard fuel-mix), coloured per fuel. */
   fuelMix(): { label: string; value: number; color: string }[] {
     const map = new Map<string, number>();
@@ -351,6 +400,7 @@ export class MockDataService {
     this.commit('employees', clone(SEED_EMPLOYEES));
     this.commit('shifts', clone(SEED_SHIFTS));
     this.commit('prices', clone(SEED_PRICES));
+    this.commit('reportTemplates', clone(SEED_REPORTS));
     this.setFuelTypes([...SEED_FUEL_TYPES]);
     this.setFuelColors({ ...SEED_FUEL_COLORS });
     this.log('Loaded demo data');
@@ -470,6 +520,10 @@ export class MockDataService {
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 const id = () => newId();
+const rangeCutoff = (range: 'today' | 'week' | 'month'): string => {
+  const days = range === 'today' ? 0 : range === 'week' ? 6 : 29;
+  return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+};
 /** Deep-clone a seed array and give each row a fresh id. */
 const clone = <T extends Entity>(rows: T[]): T[] => rows.map((r) => ({ ...r, id: newId() }));
 
@@ -514,4 +568,9 @@ const SEED_SHIFTS: Shift[] = [
   { id: id(), operator: 'John', pump: 'Pump 1', scheduledStart: '06:00', scheduledEnd: '14:00', status: 'Active', clockIn: '06:02' },
   { id: id(), operator: 'Mark', pump: 'Pump 2', scheduledStart: '14:00', scheduledEnd: '22:00', status: 'Scheduled' },
   { id: id(), operator: 'Paul', pump: 'Office', scheduledStart: '06:00', scheduledEnd: '18:00', status: 'Active', clockIn: '05:58' },
+];
+const SEED_REPORTS: ReportTemplate[] = [
+  { id: id(), name: 'Weekly Sales', source: 'sales', range: 'week', columns: ['date', 'fuel', 'litres', 'amount', 'operator'] },
+  { id: id(), name: 'Monthly Expenses', source: 'expenses', range: 'month', columns: ['date', 'category', 'description', 'amount'] },
+  { id: id(), name: 'Stock Levels', source: 'inventory', range: 'all', columns: ['fuel', 'capacity', 'current'] },
 ];

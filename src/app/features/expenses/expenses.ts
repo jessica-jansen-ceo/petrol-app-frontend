@@ -7,6 +7,7 @@ import { PermissionsService } from '../../core/services/permissions.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { toCsv, download } from '../../shared/export';
+import { exportPdf } from '../../shared/pdf';
 
 @Component({
   selector: 'app-expenses',
@@ -15,6 +16,7 @@ import { toCsv, download } from '../../shared/export';
   template: `
     <app-page-header title="Expenses" subtitle="Track station running costs.">
       <button class="btn-ghost" (click)="exportCsv()">Export CSV</button>
+      <button class="btn-ghost" (click)="exportPdf()">Export PDF</button>
       @if (perms.canCreate('expenses')) { <button class="btn-primary" (click)="openCreate()">+ Add Expense</button> }
     </app-page-header>
 
@@ -97,5 +99,16 @@ export class Expenses {
 
   exportCsv() {
     download('expenses.csv', toCsv(this.filtered(), ['date', 'category', 'description', 'amount']));
+  }
+
+  exportPdf() {
+    exportPdf({
+      title: 'Expenses',
+      columns: [
+        { key: 'date', label: 'Date' }, { key: 'category', label: 'Category' },
+        { key: 'description', label: 'Description' }, { key: 'amount', label: 'Amount' },
+      ],
+      rows: this.filtered(),
+    });
   }
 }
