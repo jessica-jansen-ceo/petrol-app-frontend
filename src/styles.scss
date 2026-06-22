@@ -15,6 +15,17 @@
   --sidebar-text: #cbd5e1;
 }
 
+/* Dark theme — toggled via [data-theme="dark"] on <html> (SettingsService). */
+:root[data-theme='dark'] {
+  --bg: #0f1419;
+  --surface: #1a2129;
+  --border: #2b3540;
+  --text: #e6edf3;
+  --text-muted: #93a1b0;
+  --sidebar-bg: #0a0e13;
+  --sidebar-text: #aeb9c5;
+}
+
 * { box-sizing: border-box; }
 
 html, body { margin: 0; padding: 0; height: 100%; }
@@ -57,8 +68,36 @@ body {
   &:hover { border-color: var(--primary); color: var(--primary); }
 }
 
-.badge { padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge { padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--border); color: var(--text-muted); }
 .badge.active { background: color-mix(in srgb, #16a34a 18%, transparent); color: #15803d; }
+.badge.warn { background: color-mix(in srgb, #f59e0b 22%, transparent); color: #b45309; }
+
+/* Row action buttons (edit/delete) in tables. */
+.row-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.icon-btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; line-height: 1;
+  &:hover { border-color: var(--primary); color: var(--primary); }
+  &.danger:hover { border-color: #dc2626; color: #dc2626; }
+}
+
+/* Toolbar above tables: search + actions. */
+.toolbar { display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.search {
+  flex: 1; min-width: 180px; padding: 0.55rem 0.8rem; border: 1px solid var(--border);
+  border-radius: 9px; background: var(--surface); color: var(--text); font-size: 0.9rem;
+  &:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+}
+
+.empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; font-size: 0.92rem; }
+
+/* Print: drop the chrome so Reports prints clean to PDF. */
+@media print {
+  .sidebar, .topbar, .toolbar, .page-header .actions, app-overlays { display: none !important; }
+  .shell { grid-template-columns: 1fr !important; }
+  .content { padding: 0 !important; }
+  .panel { border: none !important; box-shadow: none !important; }
+}
 
 .bar-meter { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; }
 .bar-meter > span { display: block; height: 100%; background: var(--primary); }

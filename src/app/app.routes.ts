@@ -37,6 +37,18 @@ export const routes: Routes = [
         loadComponent: () => import('./features/reports/reports').then((m) => m.Reports),
       },
       {
+        path: 'reconciliation',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.Admin, UserRole.Manager] },
+        loadComponent: () => import('./features/reconciliation/reconciliation').then((m) => m.Reconciliation),
+      },
+      {
+        path: 'activity',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.Admin, UserRole.Manager] },
+        loadComponent: () => import('./features/activity/activity').then((m) => m.Activity),
+      },
+      {
         path: 'expenses',
         canActivate: [roleGuard],
         data: { roles: [UserRole.Admin, UserRole.Manager] },

@@ -4,27 +4,40 @@
 </app-page-header>
 
 <section class="stats">
-  <app-stat-card label="Today's Sales" [value]="summary.todaySales | money" [delta]="summary.salesDelta"></app-stat-card>
-  <app-stat-card label="Litres Sold" [value]="summary.litresSold + ' ' + unit"></app-stat-card>
-  <app-stat-card label="Active Shifts" [value]="summary.activeShifts"></app-stat-card>
-  <app-stat-card label="Low-Stock Alerts" [value]="summary.lowStockAlerts"></app-stat-card>
+  <app-stat-card label="Today's Sales" [value]="summary().todaySales | money" [delta]="summary().salesDelta"></app-stat-card>
+  <app-stat-card label="Litres Sold" [value]="summary().litresSold + ' ' + unit"></app-stat-card>
+  <app-stat-card label="Active Shifts" [value]="summary().activeShifts"></app-stat-card>
+  <app-stat-card label="Low-Stock Alerts" [value]="summary().lowStockAlerts"></app-stat-card>
 </section>
 
 <div class="grid">
   <div class="panel">
     <h2>Revenue — last 7 days</h2>
-    <app-bar-chart [data]="revenue"></app-bar-chart>
+    <app-bar-chart [data]="revenue()"></app-bar-chart>
   </div>
 
   <div class="panel">
     <h2>Recent sales</h2>
-    <table>
-      <thead><tr><th>Fuel</th><th>Litres</th><th>Amount</th><th>Operator</th></tr></thead>
-      <tbody>
-        @for (s of recentSales(); track $index) {
-          <tr><td>{{ s.fuel }}</td><td>{{ s.litres }}</td><td>{{ s.amount | money }}</td><td>{{ s.operator }}</td></tr>
-        }
-      </tbody>
-    </table>
+    @if (recentSales().length === 0) {
+      <div class="empty">No sales recorded yet.</div>
+    } @else {
+      <table>
+        <thead><tr><th>Fuel</th><th>Litres</th><th>Amount</th><th>Operator</th></tr></thead>
+        <tbody>
+          @for (s of recentSales(); track s.id) {
+            <tr><td>{{ s.fuel }}</td><td>{{ s.litres }}</td><td>{{ s.amount | money }}</td><td>{{ s.operator }}</td></tr>
+          }
+        </tbody>
+      </table>
+    }
   </div>
+</div>
+
+<div class="panel" style="margin-top:1rem">
+  <h2>Litres sold by fuel</h2>
+  @if (fuelMix().length === 0) {
+    <div class="empty">No sales yet.</div>
+  } @else {
+    <app-bar-chart [data]="fuelMix()"></app-bar-chart>
+  }
 </div>

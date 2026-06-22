@@ -23,6 +23,10 @@
     <header class="topbar">
       <button class="hamburger" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Menu">☰</button>
       <div class="spacer"></div>
+      <button class="theme-toggle" (click)="settings.toggleTheme()"
+              [title]="settings.theme() === 'dark' ? 'Switch to light' : 'Switch to dark'">
+        {{ settings.theme() === 'dark' ? '☀' : '🌙' }}
+      </button>
       @if (user(); as u) {
         <div class="user">
           <div class="meta">
@@ -37,4 +41,6 @@
 
     <main class="content"><router-outlet></router-outlet></main>
   </div>
+
+  <app-overlays></app-overlays>
 </div>

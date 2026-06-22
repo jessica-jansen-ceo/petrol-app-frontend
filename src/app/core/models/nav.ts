@@ -24,8 +24,10 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Meter Readings', path: 'meter-readings', icon: 'gauge', roles: [A, M, O] },
   { label: 'Shifts', path: 'shifts', icon: 'clock', roles: [A, M, O], feature: 'shifts' },
   { label: 'Reports', path: 'reports', icon: 'chart', roles: [A, M], feature: 'reports' },
+  { label: 'Reconciliation', path: 'reconciliation', icon: 'scale', roles: [A, M] },
   { label: 'Expenses', path: 'expenses', icon: 'receipt', roles: [A, M], feature: 'expenses' },
   { label: 'Inventory', path: 'inventory', icon: 'tank', roles: [A, M], feature: 'inventory' },
   { label: 'Employees', path: 'employees', icon: 'users', roles: [A], feature: 'employees' },
+  { label: 'Activity Log', path: 'activity', icon: 'list', roles: [A, M] },
   { label: 'Settings', path: 'settings', icon: 'cog', roles: [A] },
 ];

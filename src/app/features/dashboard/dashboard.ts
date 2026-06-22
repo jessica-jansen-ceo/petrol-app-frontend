@@ -18,8 +18,10 @@ export class Dashboard {
   private data = inject(MockDataService);
   readonly unit = CLIENT_CONFIG.locale.volumeUnit;
   readonly user = inject(AuthService).user;
-  readonly summary = this.data.summary();
-  readonly revenue = this.data.weeklyRevenue();
+
   private readonly sales = this.data.fuelSales();
-  readonly recentSales = computed(() => this.sales().slice(0, 4));
+  readonly summary = computed(() => { this.sales(); this.data.shifts()(); this.data.stock()(); return this.data.summary(); });
+  readonly revenue = computed(() => { this.sales(); return this.data.weeklyRevenue(); });
+  readonly fuelMix = computed(() => { this.sales(); return this.data.fuelMix(); });
+  readonly recentSales = computed(() => this.sales().slice(0, 5));
 }
