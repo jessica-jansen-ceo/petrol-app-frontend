@@ -1,37 +1,38 @@
 import { Component, inject, signal } from '@angular/core';
 import { PageHeader } from '../../shared/page-header';
-import { MoneyPipe } from '../../shared/money.pipe';
 import { ModalForm, FormField } from '../../shared/modal-form';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { SettingsService, CURRENCIES } from '../../core/services/settings.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmService } from '../../core/services/confirm.service';
+import { CLIENT_CONFIG } from '../../config/client.config';
 import { download } from '../../shared/export';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [PageHeader, MoneyPipe, ModalForm],
+  imports: [PageHeader, ModalForm],
   template: `
     <app-page-header title="Settings" subtitle="Admin configuration."></app-page-header>
 
     <div class="cols">
-      <!-- Currency + thresholds -->
+      <!-- Display preferences (staged → Save) -->
       <div class="panel">
-        <h2>Currency &amp; Alerts</h2>
+        <h2>Display Preferences</h2>
         <label>
           <span>Display currency</span>
-          <select [value]="settings.currency()" (change)="settings.setCurrency($any($event.target).value)">
+          <select [value]="draftCurrency()" (change)="draftCurrency.set($any($event.target).value)">
             @for (c of currencies; track c) { <option [value]="c">{{ c }}</option> }
           </select>
         </label>
-        <p class="preview">Preview: <strong>{{ 12345 | money }}</strong></p>
+        <p class="preview">Preview: <strong>{{ preview() }}</strong></p>
         <label style="margin-top:1rem">
           <span>Low-stock alert threshold (%)</span>
-          <input type="number" min="1" max="99" [value]="thresholdPct()"
-                 (change)="setThreshold($any($event.target).value)" />
+          <input type="number" min="1" max="99" [value]="draftThreshold()"
+                 (input)="draftThreshold.set(+$any($event.target).value)" />
         </label>
         <p class="hint">Tanks below this fill level are flagged on the dashboard and inventory.</p>
+        <button class="btn-primary" (click)="saveSettings()" [disabled]="!dirty()">Save Settings</button>
       </div>
 
       <!-- Price book -->
@@ -52,18 +53,26 @@ import { download } from '../../shared/export';
         </table>
       </div>
 
-      <!-- Fuel types -->
+      <!-- Fuel types + colours -->
       <div class="panel">
-        <h2>Fuel Types</h2>
-        <p class="hint">Preloaded with Petrol 95, Petrol 93 and Diesel. A fuel can't be removed while a tank or price uses it.</p>
-        <ul class="chips">
-          @for (f of fuelTypes(); track f) {
-            <li>{{ f }}
-              <button class="chip-btn" title="Rename" (click)="openRename(f)">✎</button>
-              <button class="chip-btn" title="Remove" (click)="removeFuel(f)">×</button>
-            </li>
-          }
-        </ul>
+        <h2>Fuel Types &amp; Colours</h2>
+        <p class="hint">Each fuel has a colour used in charts. Removing a fuel also removes its data.</p>
+        <table class="feature-table">
+          <thead><tr><th>Colour</th><th>Fuel</th><th></th></tr></thead>
+          <tbody>
+            @for (f of fuelTypes(); track f) {
+              <tr>
+                <td><input class="swatch" type="color" [value]="swatch(f)"
+                      (input)="data.setFuelColor(f, $any($event.target).value)" /></td>
+                <td>{{ f }}</td>
+                <td><div class="row-actions">
+                  <button class="icon-btn" title="Rename" (click)="openRename(f)">✎</button>
+                  <button class="icon-btn danger" title="Remove" (click)="removeFuel(f)">🗑</button>
+                </div></td>
+              </tr>
+            }
+          </tbody>
+        </table>
         <div class="add-row">
           <input type="text" placeholder="e.g. Petrol 91 / LPG"
                  [value]="newFuel()" (input)="newFuel.set($any($event.target).value)" />
@@ -71,16 +80,19 @@ import { download } from '../../shared/export';
         </div>
       </div>
 
-      <!-- Backup -->
+      <!-- Data control -->
       <div class="panel">
-        <h2>Data Backup</h2>
-        <p class="hint">Export all data to a JSON file, or restore from a previous backup.</p>
+        <h2>Data</h2>
+        <p class="hint">Back up, restore, reload the demo dataset, or wipe everything to a clean slate.</p>
         <div class="add-row">
           <button class="btn-ghost" (click)="exportBackup()">Export Backup</button>
-          <label class="btn-primary file-label">
-            Import Backup
+          <label class="btn-ghost file-label">Import Backup
             <input type="file" accept="application/json" (change)="importBackup($event)" hidden />
           </label>
+        </div>
+        <div class="add-row" style="margin-top:.6rem">
+          <button class="btn-primary" (click)="loadMock()">Load Mock Data</button>
+          <button class="btn-danger" (click)="clearAll()">Clear All Data</button>
         </div>
       </div>
     </div>
@@ -95,14 +107,13 @@ import { download } from '../../shared/export';
     label { display: flex; flex-direction: column; gap: .35rem; font-size: .82rem; font-weight: 600; color: var(--text-muted); max-width: 260px; }
     select, label input { padding: .6rem .7rem; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); color: var(--text); font-size: .95rem; }
     .price { width: 110px; padding: .4rem .5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+    .swatch { width: 40px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
     .preview { margin: 1rem 0 0; color: var(--text); }
-    .chips { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .5rem; }
-    .chips li { display: inline-flex; align-items: center; gap: .35rem; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); padding: .3rem .55rem .3rem .7rem; border-radius: 999px; font-size: .85rem; font-weight: 600; }
-    .chip-btn { border: none; background: transparent; color: inherit; cursor: pointer; font-size: .9rem; line-height: 1; opacity: .7; }
-    .chip-btn:hover { opacity: 1; }
-    .add-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .add-row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
     .add-row > input[type=text] { flex: 1; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); color: var(--text); }
     .file-label { cursor: pointer; display: inline-flex; align-items: center; }
+    .btn-danger { background: #dc2626; color: #fff; border: none; padding: .55rem .95rem; border-radius: 9px; font-weight: 600; cursor: pointer; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
     @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
   `],
 })
@@ -115,22 +126,42 @@ export class Settings {
   readonly currencies = CURRENCIES;
   readonly fuelTypes = this.data.fuelTypes();
   newFuel = signal('');
-  thresholdPct = signal(Math.round(this.settings.lowStockPct() * 100));
+
+  // Staged display preferences — applied on Save.
+  draftCurrency = signal(this.settings.currency());
+  draftThreshold = signal(Math.round(this.settings.lowStockPct() * 100));
 
   renameOpen = signal(false);
   renameFields: FormField[] = [];
   private renaming = '';
 
-  setThreshold(v: string) {
-    const pct = Math.min(99, Math.max(1, Number(v) || 25));
-    this.thresholdPct.set(pct);
+  dirty() {
+    return this.draftCurrency() !== this.settings.currency()
+      || this.draftThreshold() !== Math.round(this.settings.lowStockPct() * 100);
+  }
+
+  preview() {
+    return new Intl.NumberFormat(CLIENT_CONFIG.locale.code, {
+      style: 'currency', currency: this.draftCurrency(), maximumFractionDigits: 0,
+    }).format(12345);
+  }
+
+  saveSettings() {
+    this.settings.setCurrency(this.draftCurrency());
+    const pct = Math.min(99, Math.max(1, this.draftThreshold() || 25));
+    this.draftThreshold.set(pct);
     this.settings.setLowStockPct(pct / 100);
-    this.toast.show('Threshold updated');
+    this.toast.show('Settings saved');
   }
 
   setPrice(fuel: string, v: string) {
     this.data.setPrice(fuel, Number(v) || 0);
     this.toast.show(`${fuel} price updated`);
+  }
+
+  swatch(fuel: string) {
+    const c = this.data.colorFor(fuel);
+    return c.startsWith('#') ? c : '#0f766e';
   }
 
   addFuel() {
@@ -155,11 +186,16 @@ export class Settings {
   }
 
   async removeFuel(fuel: string) {
-    const blocker = this.data.fuelRemovalBlocker(fuel);
-    if (blocker) { this.toast.show(`Can't remove ${fuel} — ${blocker}.`, 'error'); return; }
-    if (await this.confirm.ask(`Remove fuel type "${fuel}"?`)) {
+    const u = this.data.fuelUsage(fuel);
+    const parts: string[] = [];
+    if (u.sales) parts.push(`${u.sales} sale(s)`);
+    if (u.meters) parts.push(`${u.meters} meter reading(s)`);
+    if (u.tanks) parts.push(`${u.tanks} tank(s)`);
+    if (u.prices) parts.push(`its price entry`);
+    const detail = parts.length ? ` This will also permanently delete ${parts.join(', ')}.` : '';
+    if (await this.confirm.ask(`Remove fuel type "${fuel}"?${detail} This cannot be undone.`)) {
       this.data.removeFuelType(fuel);
-      this.toast.show('Fuel removed', 'info');
+      this.toast.show(`${fuel} and its data removed`, 'info');
     }
   }
 
@@ -169,18 +205,33 @@ export class Settings {
   }
 
   importBackup(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try {
         this.data.importAll(String(reader.result));
         this.toast.show('Backup restored');
-        this.thresholdPct.set(Math.round(this.settings.lowStockPct() * 100));
       } catch {
         this.toast.show('Invalid backup file', 'error');
       }
+      input.value = '';
     };
     reader.readAsText(file);
+  }
+
+  async loadMock() {
+    if (await this.confirm.ask('Replace all current data with the built-in demo dataset?')) {
+      this.data.loadMockData();
+      this.toast.show('Demo data loaded');
+    }
+  }
+
+  async clearAll() {
+    if (await this.confirm.ask('Permanently delete ALL data, including demo data? The app will start empty (no pumps, employees, sales, etc.).')) {
+      this.data.clearAll();
+      this.toast.show('All data cleared', 'info');
+    }
   }
 }

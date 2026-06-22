@@ -1,6 +1,6 @@
 import { Component, Input, computed, signal } from '@angular/core';
 
-export interface BarDatum { label: string; value: number; }
+export interface BarDatum { label: string; value: number; color?: string; }
 
 /** Lightweight dependency-free SVG bar chart for the dashboard. */
 @Component({
@@ -11,7 +11,7 @@ export interface BarDatum { label: string; value: number; }
       <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" preserveAspectRatio="none" role="img">
         @for (b of bars(); track b.label) {
           <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="barW" [attr.height]="b.h"
-                rx="4" fill="var(--primary)" />
+                rx="4" [attr.fill]="b.color" />
         }
       </svg>
       <div class="labels">
@@ -51,6 +51,7 @@ export class BarChart {
         x: this.gap + i * (this.barW + this.gap),
         y: this.H - h,
         h,
+        color: d.color || 'var(--primary)',
       };
     });
   });

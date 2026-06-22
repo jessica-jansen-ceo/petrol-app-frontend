@@ -65,8 +65,15 @@ export type CollectionName =
 
 const KEY = (name: string) => `${CLIENT_CONFIG.clientId}.data.${name}`;
 const FUEL_KEY = KEY('fuelTypes');
+const FUEL_COLORS_KEY = KEY('fuelColors');
 const newId = () =>
   (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now());
+
+/** Palette used to auto-assign a colour to each new fuel type. */
+const FUEL_PALETTE = [
+  '#0f766e', '#f59e0b', '#2563eb', '#dc2626', '#7c3aed',
+  '#059669', '#db2777', '#0891b2', '#ca8a04', '#4f46e5',
+];
 
 /**
  * In-memory store, persisted to localStorage and exposed as signals so screens
@@ -92,6 +99,7 @@ export class MockDataService {
   private readonly _prices = this.persisted<Price>('prices', SEED_PRICES);
   private readonly _activity = this.persisted<Activity>('activity', []);
   private readonly _fuelTypes = signal<string[]>(this.loadFuelTypes());
+  private readonly _fuelColors = signal<Record<string, string>>(this.loadFuelColors());
 
   constructor() {
     // Cross-tab / cross-window live sync.
@@ -108,6 +116,7 @@ export class MockDataService {
   prices(): Signal<Price[]> { return this._prices; }
   activity(): Signal<Activity[]> { return this._activity; }
   fuelTypes(): Signal<string[]> { return this._fuelTypes; }
+  fuelColors(): Signal<Record<string, string>> { return this._fuelColors; }
 
   // ─── Generic CRUD ───
   add<T extends Entity>(name: CollectionName, item: Omit<T, 'id'>): T {
@@ -187,14 +196,40 @@ export class MockDataService {
     this.update<StockItem>('stock', item.id, { current: next });
   }
 
-  // ─── Domain: fuel types ───
+  // ─── Domain: fuel types & colours ───
+  /** The colour used for a fuel in charts (falls back to the brand primary). */
+  colorFor(fuel: string): string {
+    return this._fuelColors()[fuel] ?? 'var(--primary)';
+  }
+
+  setFuelColor(fuel: string, color: string): void {
+    this.setFuelColors({ ...this._fuelColors(), [fuel]: color });
+  }
+
+  /** Next palette colour not already in use. */
+  private nextColor(): string {
+    const used = new Set(Object.values(this._fuelColors()));
+    return FUEL_PALETTE.find((c) => !used.has(c)) ?? FUEL_PALETTE[used.size % FUEL_PALETTE.length];
+  }
+
   addFuelType(name: string): boolean {
     const clean = name.trim();
     if (!clean) return false;
     if (this._fuelTypes().some((t) => t.toLowerCase() === clean.toLowerCase())) return false;
     this.setFuelTypes([...this._fuelTypes(), clean]);
+    this.setFuelColor(clean, this.nextColor());
     this.log(`Added fuel type: ${clean}`);
     return true;
+  }
+
+  /** How many records reference a fuel (for the removal warning). */
+  fuelUsage(name: string): { sales: number; meters: number; tanks: number; prices: number } {
+    return {
+      sales: this._fuelSales().filter((s) => s.fuel === name).length,
+      meters: this._meterReadings().filter((m) => m.fuel === name).length,
+      tanks: this._stock().filter((s) => s.fuel === name).length,
+      prices: this._prices().filter((p) => p.fuel === name).length,
+    };
   }
 
   /** Rename a fuel everywhere it is referenced. */
@@ -209,23 +244,25 @@ export class MockDataService {
     rename('meterReadings', this._meterReadings as unknown as WritableSignal<Entity[]>);
     rename('stock', this._stock as unknown as WritableSignal<Entity[]>);
     rename('prices', this._prices as unknown as WritableSignal<Entity[]>);
+    // carry the colour across to the new name
+    const colors = { ...this._fuelColors() };
+    if (colors[oldName]) { colors[clean] = colors[oldName]; delete colors[oldName]; }
+    this.setFuelColors(colors);
     this.log(`Renamed fuel: ${oldName} → ${clean}`);
     return true;
   }
 
-  /** Why a fuel can't be removed, or null if it can. */
-  fuelRemovalBlocker(name: string): string | null {
-    if (this._stock().some((s) => s.fuel === name)) return 'a tank still uses it';
-    if (this._prices().some((p) => p.fuel === name)) return 'it has a price entry';
-    return null;
-  }
-
-  removeFuelType(name: string): string | null {
-    const blocker = this.fuelRemovalBlocker(name);
-    if (blocker) return blocker;
+  /** Remove a fuel AND all records that reference it (sales, meters, tank, price). */
+  removeFuelType(name: string): void {
+    this.commit('fuelSales', this._fuelSales().filter((s) => s.fuel !== name));
+    this.commit('meterReadings', this._meterReadings().filter((m) => m.fuel !== name));
+    this.commit('stock', this._stock().filter((s) => s.fuel !== name));
+    this.commit('prices', this._prices().filter((p) => p.fuel !== name));
     this.setFuelTypes(this._fuelTypes().filter((t) => t !== name));
-    this.log(`Removed fuel type: ${name}`);
-    return null;
+    const colors = { ...this._fuelColors() };
+    delete colors[name];
+    this.setFuelColors(colors);
+    this.log(`Removed fuel "${name}" and all associated data`);
   }
 
   // ─── Domain: shifts ───
@@ -286,11 +323,11 @@ export class MockDataService {
     return out;
   }
 
-  /** Litres sold per fuel (for the dashboard fuel-mix). */
-  fuelMix(): { label: string; value: number }[] {
+  /** Litres sold per fuel (for the dashboard fuel-mix), coloured per fuel. */
+  fuelMix(): { label: string; value: number; color: string }[] {
     const map = new Map<string, number>();
     for (const s of this._fuelSales()) map.set(s.fuel, (map.get(s.fuel) ?? 0) + s.litres);
-    return [...map.entries()].map(([label, value]) => ({ label, value }));
+    return [...map.entries()].map(([label, value]) => ({ label, value, color: this.colorFor(label) }));
   }
 
   // ─── Activity log ───
@@ -304,9 +341,32 @@ export class MockDataService {
     this.commit('activity', [entry, ...this._activity()].slice(0, 200));
   }
 
+  // ─── Demo data control ───
+  /** Reset everything to the built-in demo dataset. */
+  loadMockData(): void {
+    this.commit('fuelSales', clone(SEED_FUEL_SALES));
+    this.commit('meterReadings', clone(SEED_METERS));
+    this.commit('expenses', clone(SEED_EXPENSES));
+    this.commit('stock', clone(SEED_STOCK));
+    this.commit('employees', clone(SEED_EMPLOYEES));
+    this.commit('shifts', clone(SEED_SHIFTS));
+    this.commit('prices', clone(SEED_PRICES));
+    this.setFuelTypes([...SEED_FUEL_TYPES]);
+    this.setFuelColors({ ...SEED_FUEL_COLORS });
+    this.log('Loaded demo data');
+  }
+
+  /** Wipe all data — the empty state a client starts from. */
+  clearAll(): void {
+    for (const name of Object.keys(this.cols) as CollectionName[]) this.commit(name, []);
+    this.setFuelTypes([]);
+    this.setFuelColors({});
+    this.log('Cleared all data');
+  }
+
   // ─── Backup / restore ───
   exportAll(): string {
-    const out: Record<string, unknown> = { fuelTypes: this._fuelTypes() };
+    const out: Record<string, unknown> = { fuelTypes: this._fuelTypes(), fuelColors: this._fuelColors() };
     for (const name of Object.keys(this.cols) as CollectionName[]) out[name] = this.cols[name]!();
     return JSON.stringify(out, null, 2);
   }
@@ -317,6 +377,9 @@ export class MockDataService {
       if (Array.isArray(data[name])) this.commit(name, data[name] as Entity[]);
     }
     if (Array.isArray(data['fuelTypes'])) this.setFuelTypes(data['fuelTypes'] as string[]);
+    if (data['fuelColors'] && typeof data['fuelColors'] === 'object') {
+      this.setFuelColors(data['fuelColors'] as Record<string, string>);
+    }
     this.log('Imported data backup');
   }
 
@@ -348,6 +411,11 @@ export class MockDataService {
     this.save(FUEL_KEY, types);
   }
 
+  private setFuelColors(colors: Record<string, string>): void {
+    this._fuelColors.set(colors);
+    this.save(FUEL_COLORS_KEY, colors);
+  }
+
   private loadFuelTypes(): string[] {
     try {
       const raw = localStorage.getItem(FUEL_KEY);
@@ -357,6 +425,17 @@ export class MockDataService {
       /* ignore */
     }
     return SEED_FUEL_TYPES;
+  }
+
+  private loadFuelColors(): Record<string, string> {
+    try {
+      const raw = localStorage.getItem(FUEL_COLORS_KEY);
+      if (raw) return JSON.parse(raw) as Record<string, string>;
+      localStorage.setItem(FUEL_COLORS_KEY, JSON.stringify(SEED_FUEL_COLORS));
+    } catch {
+      /* ignore */
+    }
+    return { ...SEED_FUEL_COLORS };
   }
 
   private save(key: string, value: unknown): void {
@@ -374,6 +453,10 @@ export class MockDataService {
       try { this._fuelTypes.set(JSON.parse(e.newValue)); } catch { /* ignore */ }
       return;
     }
+    if (e.key === FUEL_COLORS_KEY) {
+      try { this._fuelColors.set(JSON.parse(e.newValue)); } catch { /* ignore */ }
+      return;
+    }
     for (const name of Object.keys(this.cols) as CollectionName[]) {
       if (e.key === KEY(name)) {
         try { this.cols[name]!.set(JSON.parse(e.newValue)); } catch { /* ignore */ }
@@ -387,9 +470,16 @@ export class MockDataService {
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 const id = () => newId();
+/** Deep-clone a seed array and give each row a fresh id. */
+const clone = <T extends Entity>(rows: T[]): T[] => rows.map((r) => ({ ...r, id: newId() }));
 
 // ─── Seed data ───
 const SEED_FUEL_TYPES: string[] = ['Petrol 95', 'Petrol 93', 'Diesel'];
+const SEED_FUEL_COLORS: Record<string, string> = {
+  'Petrol 95': '#0f766e',
+  'Petrol 93': '#f59e0b',
+  'Diesel': '#2563eb',
+};
 const SEED_PRICES: Price[] = [
   { id: id(), fuel: 'Petrol 95', pricePerLitre: 23.4 },
   { id: id(), fuel: 'Petrol 93', pricePerLitre: 23.0 },
