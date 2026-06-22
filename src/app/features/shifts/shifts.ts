@@ -13,11 +13,16 @@ import { MockDataService } from '../../core/services/mock-data.service';
     </app-page-header>
     <div class="panel">
       <table class="feature-table">
-        <thead><tr><th>Operator</th><th>Start</th><th>End</th><th>Pump</th><th>Status</th></tr></thead>
+        <thead><tr><th>Operator</th><th>Start</th><th>End</th><th>Pump</th><th>Status</th><th></th></tr></thead>
         <tbody>
           @for (s of shifts(); track $index) {
             <tr><td>{{ s.operator }}</td><td>{{ s.start }}</td><td>{{ s.end }}</td><td>{{ s.pump }}</td>
-              <td><span class="badge" [class.active]="s.status === 'Active'">{{ s.status }}</span></td></tr>
+              <td><span class="badge" [class.active]="s.status === 'Active'">{{ s.status }}</span></td>
+              <td style="text-align:right">
+                @if (s.status === 'Active') {
+                  <button class="btn-ghost" (click)="end($index)">End Shift</button>
+                }
+              </td></tr>
           }
         </tbody>
       </table>
@@ -39,6 +44,10 @@ export class Shifts {
     { key: 'pump', label: 'Pump', type: 'select', options: ['Pump 1', 'Pump 2', 'Pump 3', 'Pump 4', 'Office'] },
     { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Closed'] },
   ];
+
+  end(index: number) {
+    this.data.endShift(index);
+  }
 
   save(v: Record<string, string>) {
     this.data.addShift({

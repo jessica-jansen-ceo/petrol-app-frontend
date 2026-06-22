@@ -54,6 +54,12 @@ export const routes: Routes = [
         data: { roles: [UserRole.Admin] },
         loadComponent: () => import('./features/employees/employees').then((m) => m.Employees),
       },
+      {
+        path: 'settings',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.Admin] },
+        loadComponent: () => import('./features/settings/settings').then((m) => m.Settings),
+      },
     ],
   },
   { path: '', pathMatch: 'full', redirectTo: 'login' },

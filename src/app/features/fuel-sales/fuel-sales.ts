@@ -10,7 +10,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
   imports: [PageHeader, MoneyPipe, ModalForm],
   template: `
     <app-page-header title="Fuel Sales" subtitle="Daily fuel sales entries.">
-      <button class="btn-primary" (click)="open.set(true)">+ New Sale</button>
+      <button class="btn-primary" (click)="openForm()">+ New Sale</button>
     </app-page-header>
     <div class="panel">
       <table class="feature-table">
@@ -35,13 +35,18 @@ export class FuelSales {
   readonly sales = this.data.fuelSales();
   open = signal(false);
 
-  fields: FormField[] = [
-    { key: 'date', label: 'Date', type: 'date', value: new Date().toISOString().slice(0, 10) },
-    { key: 'fuel', label: 'Fuel', type: 'select', options: ['Petrol 95', 'Petrol 93', 'Diesel'] },
-    { key: 'litres', label: 'Litres', type: 'number', value: 0 },
-    { key: 'pricePerLitre', label: 'Price / Litre', type: 'number', value: 23.4 },
-    { key: 'operator', label: 'Operator', type: 'text', value: '' },
-  ];
+  fields: FormField[] = [];
+
+  openForm() {
+    this.fields = [
+      { key: 'date', label: 'Date', type: 'date', value: new Date().toISOString().slice(0, 10) },
+      { key: 'fuel', label: 'Fuel', type: 'select', options: this.data.fuelTypes()() },
+      { key: 'litres', label: 'Litres', type: 'number', value: 0 },
+      { key: 'pricePerLitre', label: 'Price / Litre', type: 'number', value: 23.4 },
+      { key: 'operator', label: 'Operator', type: 'text', value: '' },
+    ];
+    this.open.set(true);
+  }
 
   save(v: Record<string, string>) {
     const litres = Number(v['litres']) || 0;

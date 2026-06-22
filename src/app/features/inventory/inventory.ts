@@ -10,7 +10,7 @@ import { CLIENT_CONFIG } from '../../config/client.config';
   imports: [PageHeader, ModalForm],
   template: `
     <app-page-header title="Fuel Inventory" subtitle="Tank stock levels.">
-      <button class="btn-primary" (click)="open.set(true)">+ Stock Delivery</button>
+      <button class="btn-primary" (click)="openForm()">+ Stock Delivery</button>
     </app-page-header>
     <div class="panel">
       <table class="feature-table">
@@ -43,11 +43,16 @@ export class Inventory {
   readonly stock = this.data.stock();
   open = signal(false);
 
-  fields: FormField[] = [
-    { key: 'fuel', label: 'Fuel', type: 'select', options: ['Petrol 95', 'Petrol 93', 'Diesel'] },
-    { key: 'capacity', label: 'Tank Capacity', type: 'number', value: 30000 },
-    { key: 'current', label: 'Current Level', type: 'number', value: 0 },
-  ];
+  fields: FormField[] = [];
+
+  openForm() {
+    this.fields = [
+      { key: 'fuel', label: 'Fuel', type: 'select', options: this.data.fuelTypes()() },
+      { key: 'capacity', label: 'Tank Capacity', type: 'number', value: 30000 },
+      { key: 'current', label: 'Current Level', type: 'number', value: 0 },
+    ];
+    this.open.set(true);
+  }
 
   pct(s: { current: number; capacity: number }) {
     return Math.round((s.current / s.capacity) * 100);

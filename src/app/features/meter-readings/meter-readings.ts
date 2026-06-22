@@ -9,7 +9,7 @@ import { MockDataService } from '../../core/services/mock-data.service';
   imports: [PageHeader, ModalForm],
   template: `
     <app-page-header title="Meter Readings" subtitle="Opening/closing pump meters and auto-calculated dispensed volume.">
-      <button class="btn-primary" (click)="open.set(true)">+ Record Reading</button>
+      <button class="btn-primary" (click)="openForm()">+ Record Reading</button>
     </app-page-header>
     <div class="panel">
       <table class="feature-table">
@@ -32,12 +32,17 @@ export class MeterReadings {
   readonly readings = this.data.meterReadings();
   open = signal(false);
 
-  fields: FormField[] = [
-    { key: 'pump', label: 'Pump', type: 'select', options: ['Pump 1', 'Pump 2', 'Pump 3', 'Pump 4'] },
-    { key: 'fuel', label: 'Fuel', type: 'select', options: ['Petrol 95', 'Petrol 93', 'Diesel'] },
-    { key: 'opening', label: 'Opening', type: 'number', value: 0 },
-    { key: 'closing', label: 'Closing', type: 'number', value: 0 },
-  ];
+  fields: FormField[] = [];
+
+  openForm() {
+    this.fields = [
+      { key: 'pump', label: 'Pump', type: 'select', options: ['Pump 1', 'Pump 2', 'Pump 3', 'Pump 4'] },
+      { key: 'fuel', label: 'Fuel', type: 'select', options: this.data.fuelTypes()() },
+      { key: 'opening', label: 'Opening', type: 'number', value: 0 },
+      { key: 'closing', label: 'Closing', type: 'number', value: 0 },
+    ];
+    this.open.set(true);
+  }
 
   save(v: Record<string, string>) {
     const opening = Number(v['opening']) || 0;

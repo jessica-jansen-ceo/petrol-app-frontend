@@ -59,6 +59,7 @@ export class MockDataService {
   private readonly _stock = this.persisted<StockItem>('stock', SEED_STOCK);
   private readonly _employees = this.persisted<Employee>('employees', SEED_EMPLOYEES);
   private readonly _shifts = this.persisted<Shift>('shifts', SEED_SHIFTS);
+  private readonly _fuelTypes = this.persisted<string>('fuelTypes', SEED_FUEL_TYPES);
 
   // ─── Read (reactive) ───
   fuelSales(): Signal<FuelSale[]> { return this._fuelSales; }
@@ -67,6 +68,7 @@ export class MockDataService {
   stock(): Signal<StockItem[]> { return this._stock; }
   employees(): Signal<Employee[]> { return this._employees; }
   shifts(): Signal<Shift[]> { return this._shifts; }
+  fuelTypes(): Signal<string[]> { return this._fuelTypes; }
 
   // ─── Create (persisted) ───
   addFuelSale(s: FuelSale) { this.prepend(this._fuelSales, 'fuelSales', s); }
@@ -75,6 +77,24 @@ export class MockDataService {
   addStock(s: StockItem) { this.prepend(this._stock, 'stock', s); }
   addEmployee(e: Employee) { this.prepend(this._employees, 'employees', e); }
   addShift(s: Shift) { this.prepend(this._shifts, 'shifts', s); }
+
+  /** Add a fuel type (ignores blanks/duplicates, case-insensitive). */
+  addFuelType(name: string) {
+    const clean = name.trim();
+    if (!clean) return;
+    const exists = this._fuelTypes().some((t) => t.toLowerCase() === clean.toLowerCase());
+    if (exists) return;
+    const next = [...this._fuelTypes(), clean];
+    this._fuelTypes.set(next);
+    this.save('fuelTypes', next);
+  }
+
+  /** End a shift by index — marks it Closed. Available to any role. */
+  endShift(index: number) {
+    const next = this._shifts().map((s, i) => (i === index ? { ...s, status: 'Closed' as const } : s));
+    this._shifts.set(next);
+    this.save('shifts', next);
+  }
 
   // ─── Derived dashboard data ───
   summary() {
@@ -119,8 +139,12 @@ export class MockDataService {
   private prepend<T>(sig: WritableSignal<T[]>, name: string, item: T) {
     const next = [item, ...sig()];
     sig.set(next);
+    this.save(name, next);
+  }
+
+  private save<T>(name: string, value: T) {
     try {
-      localStorage.setItem(KEY(name), JSON.stringify(next));
+      localStorage.setItem(KEY(name), JSON.stringify(value));
     } catch {
       /* ignore persistence errors */
     }
@@ -154,6 +178,7 @@ const SEED_EMPLOYEES: Employee[] = [
   { name: 'Mark Johnson', role: 'Pump Operator', shift: 'Afternoon', phone: '072 345 6789' },
   { name: 'Paul Williams', role: 'Manager', shift: 'Day', phone: '073 456 7890' },
 ];
+const SEED_FUEL_TYPES: string[] = ['Petrol 95', 'Petrol 93', 'Diesel'];
 const SEED_SHIFTS: Shift[] = [
   { operator: 'John', start: '06:00', end: '14:00', pump: 'Pump 1', status: 'Active' },
   { operator: 'Mark', start: '14:00', end: '22:00', pump: 'Pump 2', status: 'Active' },

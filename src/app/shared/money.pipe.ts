@@ -1,15 +1,28 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import { CLIENT_CONFIG } from '../config/client.config';
+import { SettingsService } from '../core/services/settings.service';
 
-/** Formats a number as the configured currency, e.g. {{ 55100 | money }}. */
-@Pipe({ name: 'money', standalone: true })
+/**
+ * Formats a number as the currently configured currency, e.g. {{ 55100 | money }}.
+ * Impure so it re-evaluates when an admin changes the currency at runtime.
+ */
+@Pipe({ name: 'money', standalone: true, pure: false })
 export class MoneyPipe implements PipeTransform {
-  private readonly fmt = new Intl.NumberFormat(CLIENT_CONFIG.locale.code, {
-    style: 'currency',
-    currency: CLIENT_CONFIG.locale.currency,
-    maximumFractionDigits: 0,
-  });
+  private settings = inject(SettingsService);
+  private cache?: { code: string; fmt: Intl.NumberFormat };
+
   transform(value: number | null | undefined): string {
-    return this.fmt.format(value ?? 0);
+    const code = this.settings.currency();
+    if (!this.cache || this.cache.code !== code) {
+      this.cache = {
+        code,
+        fmt: new Intl.NumberFormat(CLIENT_CONFIG.locale.code, {
+          style: 'currency',
+          currency: code,
+          maximumFractionDigits: 0,
+        }),
+      };
+    }
+    return this.cache.fmt.format(value ?? 0);
   }
 }

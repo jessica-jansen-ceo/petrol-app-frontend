@@ -27,4 +27,5 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Expenses', path: 'expenses', icon: 'receipt', roles: [A, M], feature: 'expenses' },
   { label: 'Inventory', path: 'inventory', icon: 'tank', roles: [A, M], feature: 'inventory' },
   { label: 'Employees', path: 'employees', icon: 'users', roles: [A], feature: 'employees' },
+  { label: 'Settings', path: 'settings', icon: 'cog', roles: [A] },
 ];
