@@ -32,19 +32,34 @@ app-sidebar { z-index: 30; }
     background: var(--bg); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; max-width: 200px;
   }
   .station-switcher:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
-  .theme-toggle {
-    display: grid; place-items: center;
-    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-    width: 36px; height: 36px; cursor: pointer; color: var(--text-muted);
-  }
-  .theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
-  .user { display: flex; align-items: center; gap: 0.7rem; }
   .meta { display: flex; flex-direction: column; line-height: 1.15; text-align: right; }
   .meta strong { font-size: 0.9rem; color: var(--text); }
   .meta small { font-size: 0.72rem; color: var(--text-muted); }
-  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; }
-  .logout { border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 0.4rem 0.7rem; border-radius: 8px; cursor: pointer; font-size: 0.82rem; }
-  .logout:hover { border-color: var(--primary); color: var(--primary); }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+
+  .user-menu { position: relative; }
+  .user-trigger {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+    padding: 0.3rem 0.55rem 0.3rem 0.85rem; cursor: pointer; color: var(--text);
+    &:hover, &.open { border-color: var(--primary); }
+    .chev { color: var(--text-muted); transition: transform 0.18s ease; }
+    &.open .chev { transform: rotate(180deg); }
+  }
+  .menu-backdrop { position: fixed; inset: 0; z-index: 40; }
+  .menu {
+    position: absolute; top: calc(100% + 0.5rem); right: 0; z-index: 41;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16); padding: 0.35rem; min-width: 180px;
+    display: flex; flex-direction: column;
+    button {
+      display: flex; align-items: center; gap: 0.6rem; width: 100%;
+      background: none; border: none; cursor: pointer; text-align: left;
+      padding: 0.6rem 0.7rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600; color: var(--text);
+      &:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+    }
+    .logout-item { color: #dc2626; &:hover { background: color-mix(in srgb, #dc2626 8%, transparent); } }
+  }
 }
 
 .content { padding: 1.5rem; max-width: 1200px; width: 100%; }

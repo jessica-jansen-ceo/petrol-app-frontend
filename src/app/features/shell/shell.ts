@@ -27,12 +27,14 @@ export class Shell {
   readonly stations = this.data.stations();
   readonly allStations = ALL_STATIONS;
   sidebarOpen = signal(false);
+  menuOpen = signal(false);
 
   setStation(id: string): void {
     this.settings.setCurrentStation(id);
   }
 
   logout(): void {
+    this.menuOpen.set(false);
     this.auth.logout();
     this.router.navigate(['/login']);
   }
