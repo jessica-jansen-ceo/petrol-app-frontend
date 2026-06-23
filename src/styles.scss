@@ -43,12 +43,17 @@ body {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 1.25rem;
+  /* Let wide tables scroll inside the panel rather than overflowing the page. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .feature-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  /* Keep columns readable on phones; the panel scrolls horizontally. */
+  min-width: 560px;
 
   th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--border); }
   th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -90,6 +95,12 @@ body {
 }
 
 .empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; font-size: 0.92rem; }
+
+/* Larger tap targets on touch devices (phones / iPad). */
+@media (pointer: coarse) {
+  .icon-btn { width: 38px; height: 38px; }
+  .btn-primary, .btn-ghost { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+}
 
 /* Print: drop the chrome so Reports prints clean to PDF. */
 @media print {
