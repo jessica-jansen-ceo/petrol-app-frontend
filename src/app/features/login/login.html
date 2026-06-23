@@ -1,5 +1,5 @@
 <div class="login-wrap">
-  <form class="login-card" (submit)="submit($event)">
+  <form class="login-card" (submit)="$event.preventDefault()">
     <div class="brand">
       <div class="logo">{{ brand.appName.charAt(0) }}</div>
       <h1>{{ brand.appName }}</h1>
@@ -8,37 +8,16 @@
 
     <label>
       <span>Username</span>
-      <input type="text" name="username" autocomplete="username"
-             [value]="username()" (input)="username.set($any($event.target).value)"
-             placeholder="e.g. sipho" />
+      <input type="text" value="demo" disabled />
     </label>
 
     <label>
       <span>Password</span>
-      <div class="pw">
-        <input [type]="showPassword() ? 'text' : 'password'" name="password" autocomplete="current-password"
-               [value]="password()" (input)="password.set($any($event.target).value)"
-               placeholder="••••••••" />
-        <button type="button" class="pw-toggle" (click)="showPassword.set(!showPassword())"
-                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
-          {{ showPassword() ? 'Hide' : 'Show' }}
-        </button>
-      </div>
+      <input type="password" value="demo" disabled />
     </label>
-
-    <label>
-      <span>Sign in as</span>
-      <select name="role" [value]="role()" (change)="role.set($any($event.target).value)">
-        @for (r of roles; track r) {
-          <option [value]="r">{{ roleLabels[r] }}</option>
-        }
-      </select>
-    </label>
-
-    <button type="submit" class="btn-primary">Sign In</button>
 
     <div class="quick">
-      <span class="quick-label">Quick demo login</span>
+      <span class="quick-label">Sign in as</span>
       <div class="quick-buttons">
         @for (r of roles; track r) {
           <button type="button" class="quick-btn" (click)="loginAs(r)">{{ roleLabels[r] }}</button>
@@ -47,8 +26,8 @@
     </div>
 
     <p class="poc-note">
-      Proof of concept — credentials aren't validated. Pick a role to preview that
-      user's access.
+      Proof of concept — credentials aren't validated. Choose a role above to sign in
+      and preview that user's access.
     </p>
   </form>
 </div>

@@ -52,8 +52,6 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
-  /* Keep columns readable on phones; the panel scrolls horizontally. */
-  min-width: 560px;
 
   th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--border); }
   th { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -95,6 +93,12 @@ body {
 }
 
 .empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; font-size: 0.92rem; }
+
+/* On phones, keep wide tables readable by letting them scroll in their panel.
+   On desktop, tables size to their content/container (no needless scroll). */
+@media (max-width: 700px) {
+  .feature-table { min-width: 560px; }
+}
 
 /* Segmented control (e.g. date-range quick filters). */
 .segmented {
