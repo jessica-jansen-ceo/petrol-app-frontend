@@ -7,6 +7,7 @@ import { PermissionsService } from '../../core/services/permissions.service';
 import { ToastService } from '../../core/services/toast.service';
 import { toCsv, download } from '../../shared/export';
 import { exportPdf } from '../../shared/pdf';
+import { RANGES, RangeKey, rangeCutoff } from '../../shared/date-range';
 
 @Component({
   selector: 'app-meter-readings',
@@ -23,6 +24,11 @@ import { exportPdf } from '../../shared/pdf';
     <div class="toolbar">
       <input class="search" placeholder="Search dispenser, nozzle or fuel…"
              [value]="query()" (input)="query.set($any($event.target).value)" />
+      <div class="segmented">
+        @for (r of ranges; track r.key) {
+          <button [class.active]="range() === r.key" (click)="range.set(r.key)">{{ r.label }}</button>
+        }
+      </div>
     </div>
 
     <div class="panel">
@@ -63,16 +69,19 @@ export class MeterReadings {
   readonly perms = inject(PermissionsService);
   private toast = inject(ToastService);
 
+  readonly ranges = RANGES;
   query = signal('');
+  range = signal<RangeKey>('all');
   open = signal(false);
   fields: FormField[] = [];
   private nozzleByLabel = new Map<string, string>();
 
   readonly rows = computed(() => {
     const q = this.query().toLowerCase().trim();
-    const all = this.data.ledgerView();
-    if (!q) return all;
-    return all.filter((r) => `${r.nozzle?.dispenser} ${r.nozzle?.label} ${r.nozzle?.fuel}`.toLowerCase().includes(q));
+    const cutoff = rangeCutoff(this.range());
+    return this.data.ledgerView().filter((r) =>
+      (!q || `${r.nozzle?.dispenser} ${r.nozzle?.label} ${r.nozzle?.fuel}`.toLowerCase().includes(q)) &&
+      (!cutoff || r.entry.recordedAt.slice(0, 10) >= cutoff));
   });
 
   stationName = (id: string) => this.data.stationName(id);

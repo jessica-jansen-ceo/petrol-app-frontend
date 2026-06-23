@@ -76,6 +76,30 @@ select {
   &:hover { filter: brightness(1.07); }
 }
 
+.pw {
+  position: relative;
+  display: flex;
+  align-items: center;
+  input { width: 100%; padding-right: 3.5rem; }
+  .pw-toggle {
+    position: absolute; right: 0.4rem;
+    border: none; background: none; cursor: pointer;
+    color: var(--primary); font-weight: 700; font-size: 0.78rem; padding: 0.35rem 0.5rem;
+  }
+}
+
+.quick {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  border-top: 1px solid var(--border); padding-top: 0.9rem; margin-top: 0.2rem;
+}
+.quick-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center; }
+.quick-buttons { display: flex; gap: 0.4rem; }
+.quick-btn {
+  flex: 1; padding: 0.5rem 0.4rem; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--bg); color: var(--text); font-weight: 600; font-size: 0.78rem; cursor: pointer;
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
 .poc-note {
   margin: 0.25rem 0 0;
   font-size: 0.75rem;

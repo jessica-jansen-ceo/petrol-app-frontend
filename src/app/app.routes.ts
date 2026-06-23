@@ -87,5 +87,5 @@ export const routes: Routes = [
     ],
   },
   { path: '', pathMatch: 'full', redirectTo: 'login' },
-  { path: '**', redirectTo: 'login' },
+  { path: '**', loadComponent: () => import('./features/not-found/not-found').then((m) => m.NotFound) },
 ];

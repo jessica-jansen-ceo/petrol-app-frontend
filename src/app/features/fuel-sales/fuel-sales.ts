@@ -9,6 +9,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { toCsv, download } from '../../shared/export';
 import { exportPdf } from '../../shared/pdf';
+import { RANGES, RangeKey, rangeCutoff } from '../../shared/date-range';
 
 @Component({
   selector: 'app-fuel-sales',
@@ -24,6 +25,11 @@ import { exportPdf } from '../../shared/pdf';
     <div class="toolbar">
       <input class="search" placeholder="Search fuel or operator…"
              [value]="query()" (input)="query.set($any($event.target).value)" />
+      <div class="segmented">
+        @for (r of ranges; track r.key) {
+          <button [class.active]="range() === r.key" (click)="range.set(r.key)">{{ r.label }}</button>
+        }
+      </div>
     </div>
 
     <div class="panel">
@@ -63,15 +69,19 @@ export class FuelSales {
   private confirm = inject(ConfirmService);
 
   readonly sales = this.data.viewSales;
+  readonly ranges = RANGES;
   query = signal('');
+  range = signal<RangeKey>('all');
   open = signal(false);
   editing = signal<FuelSale | null>(null);
   fields: FormField[] = [];
 
   readonly filtered = computed(() => {
     const q = this.query().toLowerCase().trim();
-    const rows = this.sales();
-    return q ? rows.filter((s) => (s.fuel + ' ' + s.operator).toLowerCase().includes(q)) : rows;
+    const cutoff = rangeCutoff(this.range());
+    return this.sales().filter((s) =>
+      (!q || (s.fuel + ' ' + s.operator).toLowerCase().includes(q)) &&
+      (!cutoff || s.date >= cutoff));
   });
 
   validate = (m: Record<string, string>) =>

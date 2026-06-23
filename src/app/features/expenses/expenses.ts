@@ -8,6 +8,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { toCsv, download } from '../../shared/export';
 import { exportPdf } from '../../shared/pdf';
+import { RANGES, RangeKey, rangeCutoff } from '../../shared/date-range';
 
 @Component({
   selector: 'app-expenses',
@@ -23,6 +24,11 @@ import { exportPdf } from '../../shared/pdf';
     <div class="toolbar">
       <input class="search" placeholder="Search category or description…"
              [value]="query()" (input)="query.set($any($event.target).value)" />
+      <div class="segmented">
+        @for (r of ranges; track r.key) {
+          <button [class.active]="range() === r.key" (click)="range.set(r.key)">{{ r.label }}</button>
+        }
+      </div>
     </div>
 
     <div class="panel">
@@ -59,15 +65,19 @@ export class Expenses {
   private confirm = inject(ConfirmService);
 
   readonly expenses = this.data.viewExpenses;
+  readonly ranges = RANGES;
   query = signal('');
+  range = signal<RangeKey>('all');
   open = signal(false);
   editing = signal<Expense | null>(null);
   fields: FormField[] = [];
 
   readonly filtered = computed(() => {
     const q = this.query().toLowerCase().trim();
-    const rows = this.expenses();
-    return q ? rows.filter((e) => (e.category + ' ' + e.description).toLowerCase().includes(q)) : rows;
+    const cutoff = rangeCutoff(this.range());
+    return this.expenses().filter((e) =>
+      (!q || (e.category + ' ' + e.description).toLowerCase().includes(q)) &&
+      (!cutoff || e.date >= cutoff));
   });
 
   private buildFields(e?: Expense): FormField[] {

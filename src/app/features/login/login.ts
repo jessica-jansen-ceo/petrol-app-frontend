@@ -20,6 +20,14 @@ export class Login {
   username = signal('');
   password = signal('');
   role = signal<UserRole>(UserRole.Admin);
+  showPassword = signal(false);
+
+  /** Demo usernames chosen to line up with seed data (operator owns shifts). */
+  private readonly demoUser: Record<UserRole, string> = {
+    [UserRole.Admin]: 'Admin',
+    [UserRole.Manager]: 'Paul',
+    [UserRole.Operator]: 'John',
+  };
 
   constructor(private auth: AuthService, private router: Router) {}
 
@@ -27,6 +35,12 @@ export class Login {
     event.preventDefault();
     // POC: credentials are accepted as-is; the role drives access.
     this.auth.login(this.username() || 'demo', this.password(), this.role());
+    this.router.navigate(['/app/dashboard']);
+  }
+
+  /** One-tap demo login for a role. */
+  loginAs(role: UserRole): void {
+    this.auth.login(this.demoUser[role], 'demo', role);
     this.router.navigate(['/app/dashboard']);
   }
 }

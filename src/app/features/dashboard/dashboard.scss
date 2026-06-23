@@ -5,6 +5,14 @@
   margin-bottom: 1.5rem;
 }
 
+.stat-link {
+  text-decoration: none;
+  display: block;
+  border-radius: 14px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.stat-link:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); }
+
 .grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;

@@ -1,4 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { PageHeader } from '../../shared/page-header';
 import { StatCard } from '../../shared/stat-card';
 import { BarChart } from '../../shared/bar-chart';
@@ -11,7 +12,7 @@ import { CLIENT_CONFIG } from '../../config/client.config';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [PageHeader, StatCard, BarChart, StackedBarChart, MoneyPipe],
+  imports: [PageHeader, StatCard, BarChart, StackedBarChart, MoneyPipe, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -25,4 +26,7 @@ export class Dashboard {
   readonly revenue = computed(() => { this.sales(); this.data.fuelColors()(); return this.data.weeklyRevenueStacked(); });
   readonly fuelMix = computed(() => { this.sales(); return this.data.fuelMix(); });
   readonly recentSales = computed(() => this.sales().slice(0, 5));
+  readonly lowStock = computed(() => { this.data.stock()(); return this.data.lowStockTanks(); });
+  readonly onShift = computed(() => { this.data.shifts()(); return this.data.onShiftNow(); });
+  stationName = (id: string) => this.data.stationName(id);
 }

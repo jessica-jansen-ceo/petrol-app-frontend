@@ -15,9 +15,15 @@
 
     <label>
       <span>Password</span>
-      <input type="password" name="password" autocomplete="current-password"
-             [value]="password()" (input)="password.set($any($event.target).value)"
-             placeholder="••••••••" />
+      <div class="pw">
+        <input [type]="showPassword() ? 'text' : 'password'" name="password" autocomplete="current-password"
+               [value]="password()" (input)="password.set($any($event.target).value)"
+               placeholder="••••••••" />
+        <button type="button" class="pw-toggle" (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+          {{ showPassword() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
     </label>
 
     <label>
@@ -30,6 +36,15 @@
     </label>
 
     <button type="submit" class="btn-primary">Sign In</button>
+
+    <div class="quick">
+      <span class="quick-label">Quick demo login</span>
+      <div class="quick-buttons">
+        @for (r of roles; track r) {
+          <button type="button" class="quick-btn" (click)="loginAs(r)">{{ roleLabels[r] }}</button>
+        }
+      </div>
+    </div>
 
     <p class="poc-note">
       Proof of concept — credentials aren't validated. Pick a role to preview that

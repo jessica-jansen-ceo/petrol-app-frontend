@@ -4,10 +4,18 @@
 </app-page-header>
 
 <section class="stats">
-  <app-stat-card label="Today's Sales" [value]="summary().todaySales | money" [delta]="summary().salesDelta"></app-stat-card>
-  <app-stat-card label="Litres Sold" [value]="summary().litresSold + ' ' + unit"></app-stat-card>
-  <app-stat-card label="Active Shifts" [value]="summary().activeShifts"></app-stat-card>
-  <app-stat-card label="Low-Stock Alerts" [value]="summary().lowStockAlerts"></app-stat-card>
+  <a [routerLink]="['/app','fuel-sales']" class="stat-link">
+    <app-stat-card label="Today's Sales" [value]="summary().todaySales | money" [delta]="summary().salesDelta"></app-stat-card>
+  </a>
+  <a [routerLink]="['/app','meter-readings']" class="stat-link">
+    <app-stat-card label="Litres Sold" [value]="summary().litresSold + ' ' + unit"></app-stat-card>
+  </a>
+  <a [routerLink]="['/app','shifts']" class="stat-link">
+    <app-stat-card label="Active Shifts" [value]="summary().activeShifts"></app-stat-card>
+  </a>
+  <a [routerLink]="['/app','inventory']" class="stat-link">
+    <app-stat-card label="Low-Stock Alerts" [value]="summary().lowStockAlerts"></app-stat-card>
+  </a>
 </section>
 
 <div class="grid">
@@ -26,6 +34,44 @@
         <tbody>
           @for (s of recentSales(); track s.id) {
             <tr><td>{{ s.fuel }}</td><td>{{ s.litres }}</td><td>{{ s.amount | money }}</td><td>{{ s.operator }}</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
+
+<div class="grid" style="margin-top:1rem">
+  <div class="panel">
+    <h2>Low-stock tanks</h2>
+    @if (lowStock().length === 0) {
+      <div class="empty">All tanks above threshold. ✓</div>
+    } @else {
+      <table>
+        <thead><tr><th>Station</th><th>Fuel</th><th>Level</th></tr></thead>
+        <tbody>
+          @for (t of lowStock(); track t.item.id) {
+            <tr>
+              <td>{{ stationName(t.item.stationId) }}</td>
+              <td>{{ t.item.fuel }}</td>
+              <td><span class="badge warn">{{ t.pct }}%</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <div class="panel">
+    <h2>On shift now</h2>
+    @if (onShift().length === 0) {
+      <div class="empty">No active shifts.</div>
+    } @else {
+      <table>
+        <thead><tr><th>Operator</th><th>Station</th><th>Pump</th><th>Since</th></tr></thead>
+        <tbody>
+          @for (s of onShift(); track s.id) {
+            <tr><td>{{ s.operator }}</td><td>{{ stationName(s.stationId) }}</td><td>{{ s.pump }}</td><td>{{ s.clockIn || '—' }}</td></tr>
           }
         </tbody>
       </table>

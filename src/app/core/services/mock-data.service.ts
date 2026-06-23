@@ -302,6 +302,20 @@ export class MockDataService {
     return { todaySales, litresSold, activeShifts, lowStockAlerts, salesDelta };
   }
 
+  /** Tanks (current station scope) below the low-stock threshold. */
+  lowStockTanks(): { item: StockItem; pct: number }[] {
+    const threshold = this.settings.lowStockPct();
+    return this.viewStock()
+      .map((item) => ({ item, pct: Math.round((item.current / item.capacity) * 100) }))
+      .filter((t) => t.pct / 100 < threshold)
+      .sort((a, b) => a.pct - b.pct);
+  }
+
+  /** Currently-active shifts in the current station scope. */
+  onShiftNow(): Shift[] {
+    return this.viewShifts().filter((s) => s.status === 'Active');
+  }
+
   weeklyRevenueStacked(): { label: string; segments: { key: string; value: number; color: string }[] }[] {
     const sales = this.viewSales();
     const fuels = this._fuelTypes();
