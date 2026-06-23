@@ -64,6 +64,13 @@ export interface Shift extends Entity {
   status: ShiftStatus;
   clockIn?: string;
   clockOut?: string;
+  /** Cash-up: meter readings captured at clock-in / clock-out, keyed by nozzleId. */
+  openingReadings?: Record<string, number>;
+  closingReadings?: Record<string, number>;
+  /** Cash the operator declared at hand-over. */
+  declaredCash?: number;
+  /** Expected revenue from dispensed volume × price. */
+  expectedAmount?: number;
 }
 export interface Price extends Entity { fuel: string; pricePerLitre: number; }
 export interface Activity extends Entity { time: string; user: string; action: string; }
@@ -441,9 +448,49 @@ export class MockDataService {
     this.log('Removed nozzle and its ledger entries');
   }
 
-  // ─── Shifts ───
-  clockIn(id: string): void { this.update<Shift>('shifts', id, { status: 'Active', clockIn: nowTime() }); this.log(`Clocked in shift ${id.slice(0, 6)}`); }
-  clockOut(id: string): void { this.update<Shift>('shifts', id, { status: 'Closed', clockOut: nowTime() }); this.log(`Clocked out shift ${id.slice(0, 6)}`); }
+  // ─── Shifts & cash-up ───
+  /** Nozzles served by a shift's pump (station + dispenser). */
+  nozzlesForPump(stationId: string, pump: string): Nozzle[] {
+    return this._nozzles().filter((n) => n.stationId === stationId && n.dispenser === pump);
+  }
+  /** Latest recorded totalizer for a nozzle (for reading continuity). */
+  latestTotalizer(nozzleId: string): number {
+    const readings = this._meterEntries().filter((e) => e.nozzleId === nozzleId);
+    if (!readings.length) return 0;
+    return readings.reduce((a, b) => (a.recordedAt > b.recordedAt ? a : b)).totalizer;
+  }
+
+  /** Clock in: capture opening readings (written to the immutable ledger). */
+  clockInWithReadings(id: string, readings: Record<string, number>): void {
+    for (const [nozzleId, totalizer] of Object.entries(readings)) {
+      this.addMeterEntry({ nozzleId, totalizer, note: 'Shift opening' });
+    }
+    this.update<Shift>('shifts', id, { status: 'Active', clockIn: nowTime(), openingReadings: readings });
+    this.log(`Clocked in shift ${id.slice(0, 6)}`);
+  }
+
+  /** Cash-up: capture closing readings + declared cash; compute expected revenue. */
+  cashUp(id: string, closing: Record<string, number>, declaredCash: number): void {
+    const shift = this._shifts().find((s) => s.id === id);
+    const opening = shift?.openingReadings ?? {};
+    let expected = 0;
+    for (const [nozzleId, totalizer] of Object.entries(closing)) {
+      this.addMeterEntry({ nozzleId, totalizer, note: 'Shift closing' });
+      const nozzle = this._nozzles().find((n) => n.id === nozzleId);
+      const dispensed = Math.max(0, totalizer - (opening[nozzleId] ?? totalizer));
+      expected += dispensed * this.priceFor(nozzle?.fuel ?? '');
+    }
+    expected = Math.round(expected * 100) / 100;
+    this.update<Shift>('shifts', id, {
+      status: 'Closed', clockOut: nowTime(), closingReadings: closing, declaredCash, expectedAmount: expected,
+    });
+    this.log(`Cash-up shift ${id.slice(0, 6)}: expected ${expected}, declared ${declaredCash}`);
+  }
+
+  /** Litres currently available in a station's tank for a fuel. */
+  availableStock(stationId: string, fuel: string): number {
+    return this._stock().find((s) => s.stationId === stationId && s.fuel === fuel)?.current ?? 0;
+  }
 
   // ─── Activity ───
   log(action: string): void {

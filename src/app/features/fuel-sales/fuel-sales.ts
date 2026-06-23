@@ -112,6 +112,13 @@ export class FuelSales {
   save(v: Record<string, string>) {
     const input = { stationId: this.data.stationIdByName(v['station']), date: v['date'], fuel: v['fuel'], litres: Number(v['litres']) || 0, operator: v['operator'] };
     const cur = this.editing();
+    // Over-draw guard: can't sell more than the tank holds (editing returns the old volume first).
+    const returned = cur && cur.stationId === input.stationId && cur.fuel === input.fuel ? cur.litres : 0;
+    const available = this.data.availableStock(input.stationId, input.fuel) + returned;
+    if (input.litres > available) {
+      this.toast.show(`Only ${available} L of ${input.fuel} available at ${this.data.stationName(input.stationId)}.`, 'error');
+      return;
+    }
     if (cur) {
       this.data.editSale(cur.id, input);
       this.toast.show('Sale updated');
